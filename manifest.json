@@ -1,0 +1,17 @@
+{
+  "name": "Mi Curso Flamenco",
+  "short_name": "Curso Flamenco",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#11151d",
+  "theme_color": "#11151d",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

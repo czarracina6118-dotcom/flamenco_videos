@@ -1,0 +1,503 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Mi Curso de Guitarra</title>
+<style>
+:root{--bg:#111318;--panel:#1c2028;--panel2:#252b35;--txt:#f7f7f7;--muted:#b9c0ca;--accent:#f2b84b;--ok:#6bd58b;--line:#343b47}
+*{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--txt);font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;font-size:18px}
+header{position:sticky;top:0;z-index:5;background:#0b0d11;padding:14px 16px;border-bottom:1px solid var(--line)}
+h1{font-size:25px;margin:0 0 4px}.sub{color:var(--muted);font-size:14px}
+main{max-width:1200px;margin:auto;padding:16px}.toolbar{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;margin-bottom:14px}
+button,.btn{border:0;border-radius:12px;padding:14px 16px;font-size:17px;font-weight:700;background:var(--panel2);color:var(--txt);cursor:pointer}
+.primary{background:var(--accent);color:#151515}.danger{background:#672d35}.small{padding:9px 11px;font-size:14px}
+input,select,textarea{width:100%;background:#151922;color:white;border:1px solid var(--line);border-radius:10px;padding:12px;font-size:17px}
+.status{padding:12px;border-radius:10px;background:var(--panel);margin:10px 0;color:var(--muted)}
+.breadcrumb{display:flex;gap:7px;flex-wrap:wrap;margin:12px 0}.crumb{background:var(--panel2);padding:8px 10px;border-radius:9px;cursor:pointer}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:15px;overflow:hidden}.thumb{height:145px;background:#0b0d11;display:flex;align-items:center;justify-content:center;font-size:48px;position:relative}
+.thumb video{width:100%;height:100%;object-fit:cover}.body{padding:12px}.name{font-weight:800;line-height:1.2;overflow-wrap:anywhere}.meta{color:var(--muted);font-size:14px;margin:7px 0}.row{display:flex;gap:7px;flex-wrap:wrap}.folder{border-left:5px solid var(--accent)}
+.playerWrap{display:none;position:fixed;inset:0;background:#08090c;z-index:20;overflow:auto;padding:12px}.playerWrap.show{display:block}
+.playerBox{max-width:1100px;margin:auto}.playerTitle{font-size:21px;font-weight:800;margin:10px 0;overflow-wrap:anywhere}
+video#player{width:100%;max-height:62vh;background:black;border-radius:12px}
+.controls{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin:10px 0}
+.ab{background:var(--panel);padding:12px;border-radius:12px}.note{margin-top:8px}
+.empty{text-align:center;padding:40px 10px;color:var(--muted)}.fav{color:#ffd95a}
+@media(max-width:600px){body{font-size:17px}.grid{grid-template-columns:1fr}.thumb{height:180px}h1{font-size:22px}}
+.hero{background:linear-gradient(135deg,#202632,#12151b);border:1px solid var(--line);border-radius:18px;padding:16px;margin-bottom:14px}
+.hero h2{margin:0 0 6px;font-size:22px}.hero p{margin:0;color:var(--muted)}
+.dashboard{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:12px 0}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px}.stat b{display:block;font-size:25px;color:var(--accent)}
+.sectionTitle{font-size:20px;font-weight:900;margin:18px 0 10px}
+.courseButtons{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:9px;margin-bottom:14px}
+.courseButtons button{min-height:62px}
+.resume{background:#243026;border:1px solid #3f6748;border-radius:14px;padding:13px;margin:12px 0;display:none}
+.resume.show{display:block}.resume b{display:block;margin-bottom:6px}
+.badge{display:inline-block;padding:4px 8px;border-radius:999px;background:#303744;font-size:12px;margin:3px 3px 0 0}
+.progressbar{height:10px;background:#303640;border-radius:99px;overflow:hidden;margin-top:7px}.progressbar i{display:block;height:100%;background:var(--ok)}
+.thumb{cursor:pointer}.thumb img{width:100%;height:100%;object-fit:cover}.thumb .playmark{position:absolute;inset:auto auto 10px 10px;background:#000b;padding:6px 9px;border-radius:8px;font-size:18px}
+.tools2{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:9px;margin:12px 0}
+.coursePanel{display:none;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:14px;margin:14px 0}.coursePanel.show{display:block}
+.courseList{display:grid;gap:8px;margin-top:10px}.lesson{display:flex;align-items:center;gap:10px;background:#151922;border-radius:11px;padding:10px}.lesson .num{min-width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:var(--accent);color:#111;font-weight:900}.lesson .lt{flex:1;overflow-wrap:anywhere}
+.scanbar{height:8px;background:#303640;border-radius:99px;overflow:hidden;margin-top:8px}.scanbar i{display:block;height:100%;width:0;background:var(--accent)}
+.today{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:14px;margin:14px 0}
+.todayHead{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap}
+.todayList{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:9px;margin-top:10px}
+.todayItem{background:#151922;border-radius:12px;padding:11px;border-left:4px solid var(--accent)}
+.todayItem b{display:block;overflow-wrap:anywhere}.todayItem .meta{margin:5px 0}
+.streak{font-size:14px;color:var(--muted)}
+.courseHero{background:#171c24;border:1px solid var(--line);border-radius:16px;padding:14px;margin:12px 0}
+.courseHeroTop{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}
+.coursePct{font-size:28px;font-weight:900;color:var(--accent)}
+.lesson.done{border-left:4px solid var(--ok)}.lesson.doing{border-left:4px solid var(--accent)}
+.lessonActions{display:flex;gap:6px;flex-wrap:wrap}
+.libraryPanel{background:var(--panel);border:1px solid var(--line);border-radius:17px;padding:14px;margin:14px 0}
+.libraryGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px;margin-top:12px}
+.courseCard{background:#151922;border:1px solid var(--line);border-radius:14px;padding:13px}
+.courseCard h3{margin:0 0 6px;font-size:18px;overflow-wrap:anywhere}.courseCard .big{font-size:24px;font-weight:900;color:var(--accent)}
+.continueStrip{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:9px;margin-top:10px}
+.scanmsg{color:var(--muted);margin-top:8px}
+
+.practiceMode{background:var(--panel);border:1px solid var(--line);border-radius:17px;padding:14px;margin:14px 0}
+.practiceSetup{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:9px;margin:10px 0}
+.practicePlan{display:grid;gap:9px;margin-top:12px}.practiceStep{background:#151922;border-left:4px solid var(--accent);border-radius:12px;padding:12px}
+.practiceStep.done{border-left-color:var(--ok);opacity:.82}.timer{font-size:34px;font-weight:900;color:var(--accent);font-variant-numeric:tabular-nums}
+.historyGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:9px;margin-top:10px}
+.historyCard{background:#151922;border-radius:12px;padding:11px}.historyCard b{font-size:22px;color:var(--accent)}
+</style>
+<link rel="manifest" href="manifest.json"><meta name="theme-color" content="#11151d"><meta name="mobile-web-app-capable" content="yes"><link rel="icon" href="icon.svg" type="image/svg+xml"></head>
+<body>
+<header><h1>🎸 Mi Curso de Guitarra · v7.2</h1><div class="sub">Videoteca local · tus archivos no se suben a Internet</div></header>
+<main>
+<div class="hero">
+<h2>🔥 Academia Flamenca de Omar</h2>
+<p>Tu videoteca convertida en curso. Los vídeos permanecen en la tarjeta SD.</p>
+<div class="dashboard">
+<div class="stat"><b id="nVideos">0</b>vídeos vistos en esta carpeta</div>
+<div class="stat"><b id="nPract">0</b>practicando</div>
+<div class="stat"><b id="nDone">0</b>aprendidos</div>
+<div class="stat"><b id="pct">0%</b>progreso</div>
+</div>
+<div class="resume" id="resume"><b>▶ CONTINUAR DONDE LO DEJÉ</b><span id="resumeName"></span><br><button class="small primary" id="resumeBtn" style="margin-top:8px">CONTINUAR</button></div>
+</div>
+<div class="practiceMode">
+<div class="todayHead"><div><div class="sectionTitle" style="margin:0">⏱ Modo Práctica Flamenca</div><div class="meta">Organiza una sesión usando tus propios vídeos.</div></div><div class="timer" id="practiceTimer">00:00</div></div>
+<div class="practiceSetup"><button class="primary duration" data-min="30">30 MINUTOS</button><button class="primary duration" data-min="60">60 MINUTOS</button><button id="startPractice">▶ INICIAR SESIÓN</button><button id="finishPractice">✓ TERMINAR SESIÓN</button></div>
+<div class="meta" id="practiceInfo">Elige 30 o 60 minutos. La sesión usa los vídeos de Práctica de hoy.</div>
+<div class="practicePlan" id="practicePlan"></div>
+<div class="sectionTitle">📊 Historial de práctica</div><div class="historyGrid" id="practiceHistory"></div>
+</div>
+<div class="libraryPanel">
+<div class="todayHead"><div><div class="sectionTitle" style="margin:0">🏛 Mi Academia Flamenca</div><div class="meta">Índice automático de tus carpetas y cursos.</div></div><button class="primary" id="scanAcademy">🔎 CREAR / ACTUALIZAR ÍNDICE</button></div>
+<div class="scanmsg" id="academyMsg">Pulsa el botón para analizar GUITARRA. El índice se guarda en esta tablet.</div>
+<div class="sectionTitle">▶ Seguir estudiando</div><div class="continueStrip" id="recentCourses"><div class="meta">Aún no hay cursos recientes.</div></div>
+<div class="sectionTitle">📚 Mis cursos</div><div class="libraryGrid" id="academyGrid"><div class="meta">Todavía no se ha creado el índice.</div></div>
+</div>
+<div class="today">
+<div class="todayHead"><div><div class="sectionTitle" style="margin:0">📅 Práctica de hoy</div><div class="streak">Elige hasta 3 vídeos para tu sesión. Se guarda en esta tablet.</div></div><button class="small" id="clearToday">LIMPIAR SESIÓN</button></div>
+<div class="todayList" id="todayList"><div class="meta">Todavía no has añadido vídeos a la práctica de hoy.</div></div>
+</div>
+<div class="sectionTitle">Acceso rápido</div>
+<div class="courseButtons">
+<button data-filter="alegr">💃 ALEGRÍAS</button>
+<button data-filter="buler">🔥 BULERÍAS</button>
+<button data-filter="sole">🎵 SOLEÁ</button>
+<button data-filter="picad">🖐 PICADO</button>
+<button data-filter="arpeg">🎶 ARPEGIOS</button>
+<button data-filter="alzap">⚡ ALZAPÚA</button>
+<button data-filter="tremol">〰 TRÉMOLO</button>
+<button data-filter="rasgue">🪭 RASGUEOS</button>
+<button data-filter="acorde">🎼 ACORDES</button>
+<button data-filter="armoni">📚 ARMONÍA</button>
+<button data-filter="rumba">💃 RUMBAS</button>
+<button data-filter="escala">🎼 ESCALAS</button>
+<button data-filter="ejercicio">🏋 EJERCICIOS</button>
+<button data-filter="tecnic">🛠 TÉCNICAS</button>
+</div>
+<div class="tools2">
+<button class="primary" id="scanThumbs">🖼 CREAR MINIATURAS DE ESTA CARPETA</button>
+<button id="courseMode">🎓 CREAR CURSO CON ESTA CARPETA</button>
+<button id="clearFilter">↩ VOLVER A GUITARRA / VER TODO</button>
+</div>
+<div class="coursePanel" id="coursePanel">
+<div class="courseHero">
+<div class="courseHeroTop"><div><div class="sectionTitle" id="courseTitle" style="margin:0">🎓 Curso</div><div class="meta">Lecciones ordenadas según tus vídeos, sin mover ningún archivo.</div></div><div class="coursePct" id="coursePct">0%</div></div>
+<div class="progressbar"><i id="courseBar" style="width:0%"></i></div>
+<div class="row" style="margin-top:10px"><button class="primary" id="continueCourse">▶ CONTINUAR CURSO</button><button id="closeCourse">CERRAR CURSO</button></div>
+</div>
+<div class="courseList" id="courseList"></div>
+</div>
+<div class="toolbar">
+<button class="primary" id="pick">📁 ELEGIR CARPETA GUITARRA</button>
+<button id="restore">↻ RECUPERAR CARPETA</button>
+<button id="home">🏠 INICIO</button>
+<button id="favs">⭐ FAVORITOS</button>
+</div>
+<input id="search" placeholder="🔎 Buscar: alegrías, picado, acordes, cejilla...">
+<div class="status" id="status">Selecciona la carpeta GUITARRA de tu tarjeta SD.</div>
+<div class="breadcrumb" id="bread"></div>
+<div class="grid" id="grid"></div>
+</main>
+
+<section class="playerWrap" id="playerWrap">
+<div class="playerBox">
+<button id="close">← VOLVER AL CURSO</button>
+<div class="playerTitle" id="playerTitle"></div>
+<video id="player" controls playsinline></video>
+<div class="controls">
+<button data-skip="-10">⏪ 10 s</button><button data-skip="10">10 s ⏩</button>
+<button data-speed=".5">0,5×</button><button data-speed=".75">0,75×</button>
+<button data-speed="1">1×</button><button id="soundBtn">🔊 SONIDO</button><button id="full">⛶ PANTALLA COMPLETA</button>
+</div>
+<div class="ab">
+<div class="row"><button id="setA">A · INICIO</button><button id="setB">B · FINAL</button><button id="loop">🔁 BUCLE A-B: NO</button><button id="clearAB">BORRAR A-B</button></div>
+<div id="abInfo" class="meta">A: — &nbsp; B: —</div>
+</div>
+<div class="controls">
+<button id="favBtn">☆ FAVORITO</button><button id="todayPlayer">＋ PRÁCTICA DE HOY</button>
+<select id="progress"><option value="pendiente">○ Pendiente</option><option value="practicando">◉ Practicando</option><option value="aprendido">✓ Aprendido</option></select>
+</div>
+<textarea id="note" class="note" rows="3" placeholder="Notas de práctica..."></textarea>
+</div>
+</section>
+
+<script>
+const VIDEO=/\.(mp4|webm|m4v|mov|ogv)$/i, PDF=/\.pdf$/i;
+let root=null,current=null,path=[],entries=[],currentFile=null,objectURL=null,A=null,B=null,loopAB=false,showFavs=false;
+const $=s=>document.querySelector(s), grid=$('#grid'), status=$('#status'), bread=$('#bread');
+const dbp=new Promise((res,rej)=>{let r=indexedDB.open('guitarraDB',1);r.onupgradeneeded=()=>r.result.createObjectStore('handles');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)});
+async function dbSet(k,v){let db=await dbp,t=db.transaction('handles','readwrite');t.objectStore('handles').put(v,k)}
+async function dbGet(k){let db=await dbp;return new Promise(r=>{let q=db.transaction('handles').objectStore('handles').get(k);q.onsuccess=()=>r(q.result);q.onerror=()=>r(null)})}
+const key=(name)=>'file:'+name;
+function data(name){try{return JSON.parse(localStorage.getItem(key(name)))||{}}catch{return {}}}
+function save(name,obj){localStorage.setItem(key(name),JSON.stringify(obj))}
+async function permission(h){if((await h.queryPermission({mode:'read'}))==='granted')return true;return (await h.requestPermission({mode:'read'}))==='granted'}
+async function pick(){if(!window.showDirectoryPicker){status.innerHTML='⚠️ Este navegador no ofrece acceso a carpetas mediante File System Access API. Prueba Chrome/Edge actualizado. Si Android no lo permite, habrá que usar la versión APK.';return}
+try{root=await showDirectoryPicker({mode:'read'});if(await permission(root)){await dbSet('root',root);current=root;path=[root.name];showFavs=false;await render()}}catch(e){if(e.name!=='AbortError')status.textContent='No se pudo abrir la carpeta: '+e.message}}
+async function restore(){let h=await dbGet('root');if(!h){status.textContent='No hay una carpeta guardada. Pulsa ELEGIR CARPETA GUITARRA.';return}try{if(await permission(h)){root=h;current=h;path=[h.name];showFavs=false;await render()}}catch(e){status.textContent='Android no ha conservado el permiso. Selecciona de nuevo GUITARRA.'}}
+async function list(dir){let a=[];for await(const [name,h] of dir.entries()){if(h.kind==='directory'||VIDEO.test(name)||PDF.test(name))a.push({name,h})}return a.sort((x,y)=>x.h.kind===y.h.kind?x.name.localeCompare(y.name,'es',{numeric:true}):x.h.kind==='directory'?-1:1)}
+async function render(){
+if(!current)return; status.textContent='Leyendo '+path.join(' › ')+'…'; entries=await list(current); draw(entries); status.textContent=`${entries.length} elementos · ${path.join(' › ')}`; drawBread();
+}
+
+
+
+let practiceMinutes=30,practiceStarted=null,practiceInterval=null,practiceItems=[];
+function fmtTime(sec){sec=Math.max(0,Math.floor(sec));return String(Math.floor(sec/60)).padStart(2,'0')+':'+String(sec%60).padStart(2,'0')}
+document.querySelectorAll('.duration').forEach(b=>b.onclick=()=>{practiceMinutes=Number(b.dataset.min);document.querySelectorAll('.duration').forEach(x=>x.textContent=x.dataset.min+' MINUTOS');b.textContent='✓ '+practiceMinutes+' MINUTOS';$('#practiceInfo').textContent='Sesión seleccionada: '+practiceMinutes+' minutos.'});
+function buildPracticePlan(){
+ let cand=getToday();practiceItems=cand.slice(0,3);let box=$('#practicePlan');box.innerHTML='';
+ if(!practiceItems.length){box.innerHTML='<div class="meta">Añade primero uno, dos o tres vídeos con + HOY.</div>';return false}
+ let weights=practiceItems.length===1?[1]:practiceItems.length===2?[.4,.6]:[.25,.45,.30], labels=['Calentamiento / técnica','Trabajo principal','Repaso'];
+ practiceItems.forEach((it,i)=>{let mins=Math.max(1,Math.round(practiceMinutes*weights[i])),d=document.createElement('div');d.className='practiceStep';
+ d.innerHTML=`<b>${i+1}. ${labels[i]||'Práctica'} · ${mins} min</b><div class="meta">${esc(clean(it.name))}</div><button class="small playP">▶ REPRODUCIR</button><button class="small stepDone">✓ HECHO</button>`;
+ d.querySelector('.playP').onclick=async()=>{let e=await resolveToday(it);if(e)openEntry(e);else $('#practiceInfo').textContent='No encuentro ese vídeo. Vuelve a añadirlo con + HOY.'};
+ d.querySelector('.stepDone').onclick=()=>d.classList.toggle('done');box.appendChild(d)});
+ return true
+}
+function startPractice(){if(practiceStarted)return;if(!buildPracticePlan())return;practiceStarted=Date.now();$('#practiceInfo').textContent='Sesión en marcha.';practiceInterval=setInterval(()=>$('#practiceTimer').textContent=fmtTime((Date.now()-practiceStarted)/1000),1000)}
+function finishPractice(){
+ if(!practiceStarted){$('#practiceInfo').textContent='No hay una sesión activa.';return}
+ let secs=Math.round((Date.now()-practiceStarted)/1000),hist=[];try{hist=JSON.parse(localStorage.getItem('practiceHistory'))||[]}catch{}
+ hist.unshift({date:new Date().toISOString(),seconds:secs,planned:practiceMinutes,videos:practiceItems.length});hist=hist.slice(0,60);localStorage.setItem('practiceHistory',JSON.stringify(hist));
+ clearInterval(practiceInterval);practiceInterval=null;practiceStarted=null;$('#practiceTimer').textContent='00:00';$('#practiceInfo').textContent='✓ Sesión guardada.';renderPracticeHistory()
+}
+function renderPracticeHistory(){
+ let hist=[];try{hist=JSON.parse(localStorage.getItem('practiceHistory'))||[]}catch{};let box=$('#practiceHistory');
+ if(!hist.length){box.innerHTML='<div class="meta">Todavía no hay sesiones terminadas.</div>';return}
+ let week=hist.filter(x=>Date.now()-new Date(x.date).getTime()<7*86400000),secs=week.reduce((a,x)=>a+x.seconds,0);
+ box.innerHTML=`<div class="historyCard"><b>${week.length}</b><div>sesiones últimos 7 días</div></div><div class="historyCard"><b>${Math.round(secs/60)}</b><div>minutos esta semana</div></div><div class="historyCard"><b>${hist.length}</b><div>sesiones guardadas</div></div>`;
+}
+$('#soundBtn').onclick=()=>{let p=$('#player');if(p.muted||p.volume===0){p.muted=false;p.volume=1;$('#soundBtn').textContent='🔊 SONIDO'}else{p.muted=true;$('#soundBtn').textContent='🔇 SILENCIO'}};
+$('#startPractice').onclick=startPractice;$('#finishPractice').onclick=finishPractice;renderPracticeHistory();
+
+async function scanAcademy(){
+ if(!root){status.textContent='Primero selecciona o recupera la carpeta GUITARRA.';return}
+ let btn=$('#scanAcademy');btn.disabled=true;let courses=[],seen=0;
+ $('#academyMsg').textContent='Analizando carpetas…';
+ async function walk(dir,parts,depth){
+  let videoCount=0, childDirs=[];
+  for await(const [name,hh] of dir.entries()){
+   seen++;if(seen%25===0)$('#academyMsg').textContent=`Analizando… ${seen} elementos revisados`;
+   if(hh.kind==='file'&&VIDEO.test(name))videoCount++;
+   else if(hh.kind==='directory')childDirs.push([name,hh]);
+  }
+  if(videoCount>0)courses.push({name:parts[parts.length-1]||root.name,path:[root.name,...parts],videos:videoCount});
+  if(depth<5)for(const [name,hh] of childDirs)await walk(hh,[...parts,name],depth+1);
+ }
+ try{
+  await walk(root,[],0);localStorage.setItem('academyIndex',JSON.stringify(courses));
+  $('#academyMsg').textContent=`Índice listo: ${courses.length} cursos con vídeos · ${seen} elementos revisados.`;
+  renderAcademy(courses)
+ }catch(e){$('#academyMsg').textContent='No se pudo terminar el índice: '+e.message}
+ btn.disabled=false
+}
+function courseStats(c){
+ let done=0;
+ // Exact global progress is derived from stored file metadata when course is opened;
+ // here show known completed count saved for this course, if any.
+ let cp;try{cp=JSON.parse(localStorage.getItem('courseProgress:'+c.path.join('/')))||{}}catch{cp={}}
+ done=cp.done||0;let pct=c.videos?Math.round(Math.min(done,c.videos)/c.videos*100):0;return {done,pct}
+}
+async function openIndexedCourse(c){
+ if(!root)return;
+ try{
+  let dir=root;for(let i=1;i<c.path.length;i++)dir=await dir.getDirectoryHandle(c.path[i]);
+  current=dir;path=[...c.path];entries=await list(current);draw(entries);drawBread();
+  rememberRecent(c);buildCourse();status.textContent=`Curso abierto: ${c.name}`;
+ }catch(e){status.textContent='No encuentro esa carpeta. Actualiza el índice de la academia.'}
+}
+function rememberRecent(c){
+ let a=[];try{a=JSON.parse(localStorage.getItem('recentCourses'))||[]}catch{}
+ a=a.filter(x=>x.path.join('/')!==c.path.join('/'));a.unshift(c);a=a.slice(0,4);
+ localStorage.setItem('recentCourses',JSON.stringify(a));renderRecents()
+}
+function renderRecents(){
+ let box=$('#recentCourses');if(!box)return;let a=[];try{a=JSON.parse(localStorage.getItem('recentCourses'))||[]}catch{}
+ if(!a.length){box.innerHTML='<div class="meta">Aún no hay cursos recientes.</div>';return}
+ box.innerHTML='';a.forEach(c=>{let d=document.createElement('div');d.className='courseCard';d.innerHTML=`<h3>${esc(c.name)}</h3><div class="meta">${c.videos} lecciones</div><button class="small primary">▶ CONTINUAR</button>`;d.querySelector('button').onclick=()=>openIndexedCourse(c);box.appendChild(d)})
+}
+function renderAcademy(courses){
+ let box=$('#academyGrid');if(!box)return;
+ if(!courses?.length){box.innerHTML='<div class="meta">No se encontraron carpetas con vídeos.</div>';return}
+ box.innerHTML='';courses.sort((a,b)=>a.name.localeCompare(b.name,'es',{numeric:true})).forEach(c=>{
+  let s=courseStats(c),d=document.createElement('div');d.className='courseCard';
+  d.innerHTML=`<h3>🎓 ${esc(c.name)}</h3><div class="big">${c.videos}</div><div class="meta">lecciones · ${s.pct}% conocido</div><div class="progressbar"><i style="width:${s.pct}%"></i></div><button class="small primary" style="margin-top:9px">ABRIR CURSO</button>`;
+  d.querySelector('button').onclick=()=>openIndexedCourse(c);box.appendChild(d)
+ })
+}
+function loadAcademy(){
+ let a=[];try{a=JSON.parse(localStorage.getItem('academyIndex'))||[]}catch{}
+ if(a.length){renderAcademy(a);$('#academyMsg').textContent=`Índice guardado: ${a.length} cursos. Pulsa actualizar si has añadido vídeos.`}
+ renderRecents()
+}
+
+function todayKey(){let d=new Date();return 'practice:'+d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate()}
+function getToday(){try{return JSON.parse(localStorage.getItem(todayKey()))||[]}catch{return []}}
+function setToday(a){localStorage.setItem(todayKey(),JSON.stringify(a));renderToday()}
+function addToday(e,button=null){
+ let a=getToday();if(a.some(x=>x.name===e.name)){status.textContent='✓ Este vídeo YA ESTÁ en la práctica de hoy.';if(button){let old=button.textContent;button.textContent='✓ YA AÑADIDO';setTimeout(()=>button.textContent=old,1200)}return}
+ if(a.length>=3){status.textContent='La sesión de hoy ya tiene 3 vídeos. Limpia uno o termina la sesión antes de añadir más.';return}
+ a.push({name:e.name,path:[...path]});setToday(a);
+status.textContent='✓ AÑADIDO A PRÁCTICA DE HOY: '+clean(e.name);
+let btn=button;if(btn){let old=btn.textContent;btn.textContent='✓ AÑADIDO';btn.disabled=true;setTimeout(()=>{btn.textContent=old;btn.disabled=false},1200)}
+$('#todayList')?.scrollIntoView({behavior:'smooth',block:'center'})
+}
+function findCurrentEntry(name){return entries.find(x=>x.name===name&&x.h.kind==='file')}
+async function resolveToday(it){
+ if(!root)return null;
+ try{
+  let dir=root, pp=Array.isArray(it.path)?it.path:[];
+  for(let i=1;i<pp.length;i++) dir=await dir.getDirectoryHandle(pp[i]);
+  let fh=await dir.getFileHandle(it.name);
+  return {name:it.name,h:fh};
+ }catch(e){return null}
+}
+function renderToday(){
+ let a=getToday(),box=$('#todayList');if(!box)return;
+ if(!a.length){box.innerHTML='<div class="meta">Todavía no has añadido vídeos a la práctica de hoy.</div>';return}
+ box.innerHTML='';
+ a.forEach((it,i)=>{let d=document.createElement('div');d.className='todayItem';let inf=data(it.name);
+ d.innerHTML=`<b>${i+1}. ${esc(clean(it.name))}</b><div class="meta">${inf.progress||'pendiente'}</div><button class="small playToday">▶ REPRODUCIR</button><button class="small removeToday">✕</button>`;
+ d.querySelector('.playToday').onclick=async()=>{
+ status.textContent='Abriendo vídeo…';
+ let e=await resolveToday(it);
+ if(e){await openEntry(e);status.textContent='Vídeo abierto desde Práctica de hoy.'}
+ else status.textContent='No encuentro este vídeo. Quítalo de Práctica de hoy y vuelve a añadirlo desde su carpeta para guardar su ruta correctamente.';
+};
+ d.querySelector('.removeToday').onclick=()=>setToday(getToday().filter(x=>x.name!==it.name));box.appendChild(d)})
+}
+
+function updateStats(items){
+ let files=items.filter(x=>x.h.kind==='file'&&VIDEO.test(x.name)),pr=0,dn=0;
+ files.forEach(x=>{let d=data(x.name);if(d.progress==='practicando')pr++;if(d.progress==='aprendido')dn++});
+ $('#nVideos').textContent=files.length;$('#nPract').textContent=pr;$('#nDone').textContent=dn;$('#pct').textContent=files.length?Math.round(dn/files.length*100)+'%':'0%';
+ let lf=localStorage.getItem('lastFile'), hit=items.find(x=>x.name===lf);
+ if(hit){$('#resume').classList.add('show');$('#resumeName').textContent=clean(hit.name);$('#resumeBtn').onclick=()=>openEntry(hit)}else $('#resume').classList.remove('show');
+}
+function draw(items){updateStats(items);renderToday();
+let q=$('#search').value.trim().toLowerCase(); let arr=items.filter(x=>x.name.toLowerCase().includes(q));
+if(showFavs)arr=arr.filter(x=>x.h.kind==='file'&&data(x.name).fav);
+grid.innerHTML=''; if(!arr.length){grid.innerHTML='<div class="empty">No hay resultados.</div>';return}
+for(const e of arr){let d=document.createElement('div');d.className='card '+(e.h.kind==='directory'?'folder':'');let info=data(e.name), icon=e.h.kind==='directory'?'📁':PDF.test(e.name)?'📄':'▶️';
+let th=info.thumb||'';d.innerHTML=`<div class="thumb">${th?`<img src="${th}" alt=""><span class="playmark">▶</span>`:icon}</div><div class="body"><div class="name">${esc(clean(e.name))}</div><div class="meta">${e.h.kind==='directory'?'Carpeta':PDF.test(e.name)?'Documento PDF':'Vídeo'} ${info.progress?' · '+info.progress:''}</div>${e.h.kind==='file'?`<div><span class="badge">${info.fav?'★ Favorito':'Vídeo de estudio'}</span>${info.progress==='aprendido'?'<span class="badge">✓ Aprendido</span>':''}</div>`:''}<div class="row"><button class="small open">${e.h.kind==='directory'?'ABRIR':'REPRODUCIR'}</button>${e.h.kind==='file'?`<button class="small star">${info.fav?'★':'☆'}</button><button class="small todayAdd">＋ HOY</button>`:''}</div></div>`;
+d.querySelector('.open').onclick=()=>openEntry(e);d.querySelector('.thumb').onclick=()=>openEntry(e); let st=d.querySelector('.star');if(st)st.onclick=()=>{let x=data(e.name);x.fav=!x.fav;save(e.name,x);draw(entries)};
+let ta=d.querySelector('.todayAdd');if(ta)ta.onclick=()=>addToday(e,ta);
+grid.appendChild(d)}
+}
+function clean(n){return n.replace(/\.[^.]+$/,'').replace(/[-_+]+/g,' ').replace(/\s+/g,' ').trim()}
+function esc(s){return s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+async function openEntry(e){
+if(e.h.kind==='directory'){current=e.h;path.push(e.name);showFavs=false;$('#search').value='';await render();return}
+let f=await e.h.getFile(); if(PDF.test(e.name)){let u=URL.createObjectURL(f);window.open(u,'_blank');setTimeout(()=>URL.revokeObjectURL(u),60000);return}
+currentFile=e.name;if(objectURL)URL.revokeObjectURL(objectURL);objectURL=URL.createObjectURL(f);let p=$('#player');
+p.muted=false;p.defaultMuted=false;p.volume=1;p.removeAttribute('muted');p.src=objectURL;
+$('#playerTitle').textContent=clean(e.name);let inf=data(e.name);$('#note').value=inf.note||'';$('#progress').value=inf.progress||'pendiente';$('#favBtn').textContent=inf.fav?'★ FAVORITO':'☆ FAVORITO';A=inf.A??null;B=inf.B??null;loopAB=false;updateAB();$('#playerWrap').classList.add('show');p.onloadedmetadata=()=>{if(inf.position&&inf.position<p.duration-2)p.currentTime=inf.position};
+p.load();
+p.addEventListener('canplay',()=>{p.muted=false;p.volume=1;$('#soundBtn').textContent='🔊 SONIDO';p.play().catch(()=>{})},{once:true});
+}
+function drawBread(){bread.innerHTML='';let b=document.createElement('span');b.className='crumb';b.textContent='🏠 '+path[0];b.onclick=()=>goRoot();bread.appendChild(b);if(path.length>1){let s=document.createElement('span');s.textContent='› '+path.slice(1).join(' › ');bread.appendChild(s)}}
+async function goRoot(){if(root){clearLiveThumbURLs();current=root;path=[root.name];showFavs=false;$('#search').value='';$('#coursePanel').classList.remove('show');await render()}}
+
+
+let liveThumbURLs=[];
+function clearLiveThumbURLs(){for(const u of liveThumbURLs)try{URL.revokeObjectURL(u)}catch(e){} liveThumbURLs=[]}
+async function showLiveThumbs(){
+ let cards=[...grid.querySelectorAll('.card')], vids=entries.filter(x=>x.h.kind==='file'&&VIDEO.test(x.name));
+ if(!vids.length){status.textContent='Esta carpeta no contiene vídeos directos. Entra en una carpeta con MP4 y vuelve a pulsar MINIATURAS.';return}
+ clearLiveThumbURLs(); let made=0,failed=0;
+ for(let i=0;i<entries.length;i++){
+  let e=entries[i]; if(!(e.h.kind==='file'&&VIDEO.test(e.name)))continue;
+  let card=cards[i]; if(!card)continue; let box=card.querySelector('.thumb');
+  try{
+   let f=await e.h.getFile(),u=URL.createObjectURL(f);liveThumbURLs.push(u);
+   box.innerHTML='';let v=document.createElement('video');v.muted=true;v.playsInline=true;v.preload='metadata';v.src=u;
+   v.style.cssText='width:100%;height:100%;object-fit:cover;pointer-events:none';
+   box.appendChild(v);let mark=document.createElement('span');mark.className='playmark';mark.textContent='▶';box.appendChild(mark);
+   v.addEventListener('loadedmetadata',()=>{try{v.currentTime=Math.min(1,Math.max(.1,(v.duration||1)*.03))}catch(e){}},{once:true});
+   made++;
+  }catch(e){failed++}
+ }
+ status.textContent=`Miniaturas visibles: ${made}${failed?' · fallos: '+failed:''}. No se modifican tus vídeos.`;
+}
+async function makeThumb(handle,name){
+ let u=null;
+ try{
+  let f=await handle.getFile();u=URL.createObjectURL(f);
+  let v=document.createElement('video');v.muted=true;v.playsInline=true;v.preload='auto';v.src=u;
+  await Promise.race([
+   new Promise((ok,no)=>{v.onloadeddata=ok;v.onerror=()=>no(new Error('video'))}),
+   new Promise((_,no)=>setTimeout(()=>no(new Error('timeout')),7000))
+  ]);
+  let target=(isFinite(v.duration)&&v.duration>1)?Math.min(1,Math.max(.15,v.duration*.05)):.15;
+  if(Math.abs(v.currentTime-target)>.05){
+   await Promise.race([
+    new Promise((ok,no)=>{v.onseeked=ok;v.onerror=()=>no(new Error('seek'));v.currentTime=target}),
+    new Promise((_,no)=>setTimeout(()=>no(new Error('seek timeout')),5000))
+   ]);
+  }
+  if(!v.videoWidth||!v.videoHeight) throw new Error('sin imagen');
+  let c=document.createElement('canvas'),max=420,ratio=v.videoWidth/v.videoHeight;
+  c.width=max;c.height=Math.max(180,Math.round(max/ratio));
+  c.getContext('2d').drawImage(v,0,0,c.width,c.height);
+  let thumb=c.toDataURL('image/jpeg',.65),x=data(name);x.thumb=thumb;save(name,x);
+  if(u)URL.revokeObjectURL(u);return true;
+ }catch(e){if(u)URL.revokeObjectURL(u);return false}
+}
+$('#scanThumbs').onclick=showLiveThumbs;
+let courseVideos=[];
+function buildCourse(){
+ courseVideos=entries.filter(x=>x.h.kind==='file'&&VIDEO.test(x.name));
+ let cp=$('#coursePanel'),cl=$('#courseList');cl.innerHTML='';
+ if(!courseVideos.length){status.textContent='Esta carpeta no contiene vídeos directos para convertir en lecciones.';return}
+ let done=0;
+ courseVideos.forEach((e,i)=>{
+  let inf=data(e.name), state=inf.progress||'pendiente';if(state==='aprendido')done++;
+  let d=document.createElement('div');d.className='lesson '+(state==='aprendido'?'done':state==='practicando'?'doing':'');
+  d.innerHTML=`<span class="num">${i+1}</span><div class="lt"><b>${esc(clean(e.name))}</b><div class="meta">${state==='aprendido'?'✓ Aprendido':state==='practicando'?'◉ Practicando':'○ Pendiente'}</div></div><div class="lessonActions"><button class="small watch">▶ VER</button><button class="small mark">${state==='aprendido'?'↺ REPASAR':'✓ COMPLETAR'}</button></div>`;
+  d.querySelector('.watch').onclick=()=>openEntry(e);
+  d.querySelector('.mark').onclick=()=>{let x=data(e.name);x.progress=x.progress==='aprendido'?'practicando':'aprendido';save(e.name,x);buildCourse();draw(entries)};
+  cl.appendChild(d)
+ });
+ let pct=Math.round(done/courseVideos.length*100);
+ localStorage.setItem('courseProgress:'+path.join('/'),JSON.stringify({done,total:courseVideos.length,pct}));
+ $('#coursePct').textContent=pct+'%';$('#courseBar').style.width=pct+'%';
+ $('#courseTitle').textContent='🎓 '+(path[path.length-1]||'Curso');
+ let next=courseVideos.find(e=>data(e.name).progress!=='aprendido')||courseVideos[0];
+ $('#continueCourse').onclick=()=>{if(next)openEntry(next)};
+ cp.classList.add('show');cp.scrollIntoView({behavior:'smooth',block:'start'});
+ localStorage.setItem('lastCourse',JSON.stringify({path:[...path],name:path[path.length-1]}));
+}
+$('#courseMode').onclick=buildCourse;
+$('#closeCourse').onclick=()=>$('#coursePanel').classList.remove('show');
+$('#clearFilter').onclick=async()=>{
+ $('#search').value='';showFavs=false;clearLiveThumbURLs();
+ if(root){
+   current=root;path=[root.name];entries=await list(root);draw(entries);drawBread();
+   $('#coursePanel').classList.remove('show');
+   status.textContent=`Todos los contenidos · ${root.name} · ${entries.length} elementos`;
+ }
+};
+
+
+async function recursiveMatches(dir, term, prefix='', out=[], limit=400){
+ for await (const [name,handle] of dir.entries()){
+  if(out.length>=limit) break;
+  const rel=prefix?prefix+' › '+name:name;
+  if(handle.kind==='directory'){
+   if(name.toLowerCase().includes(term)) out.push({name, h:handle, rel, quick:true});
+   try{await recursiveMatches(handle,term,rel,out,limit)}catch(e){}
+  } else if((VIDEO.test(name)||PDF.test(name)) && (name.toLowerCase().includes(term)||rel.toLowerCase().includes(term))){
+   out.push({name,h:handle,rel,quick:true});
+  }
+ }
+ return out;
+}
+async function quickAccess(term,label){
+ if(!root){status.textContent='Primero selecciona o recupera la carpeta GUITARRA.';return}
+ status.textContent='Abriendo '+label+'…'; $('#search').value='';showFavs=false;
+ // Primero mira SOLO el nivel principal: esto hace instantáneos ALEGRÍAS, BULERÍAS, etc.
+ let top=await list(root), dirs=top.filter(x=>x.h.kind==='directory'&&x.name.toLowerCase().includes(term));
+ if(dirs.length===1){
+   current=dirs[0].h;path=[root.name,dirs[0].name];entries=await list(current);draw(entries);drawBread();
+   status.textContent=`${path.join(' › ')} · ${entries.length} elementos`;return;
+ }
+ if(dirs.length>1){entries=dirs.map(x=>({...x,rel:x.name,quick:true}));drawQuick(entries);status.textContent=`${label}: elige una de estas ${dirs.length} carpetas.`;return}
+ // Si no está en el nivel principal, busca por subcarpetas mostrando actividad inmediatamente.
+ grid.innerHTML='<div class="empty">Buscando en las subcarpetas…</div>';
+ let found=[]; let n=0;
+ async function walk(dir,prefix=''){
+   for await(const [name,handle] of dir.entries()){
+    n++; if(n%20===0)status.textContent=`Buscando ${label}… ${n} elementos revisados`;
+    let rel=prefix?prefix+' › '+name:name, low=rel.toLowerCase();
+    if(handle.kind==='directory'){
+      if(name.toLowerCase().includes(term)){found.push({name,h:handle,rel,quick:true});drawQuick(found)}
+      await walk(handle,rel);
+    }else if((VIDEO.test(name)||PDF.test(name))&&low.includes(term)){
+      found.push({name,h:handle,rel,quick:true}); if(found.length%5===0)drawQuick(found);
+    }
+   }
+ }
+ await walk(root);entries=found;drawQuick(found);
+ status.textContent=`${label}: ${found.length} resultados · ${n} elementos revisados.`;
+}
+function drawQuick(arr){
+ grid.innerHTML='';
+ if(!arr.length){grid.innerHTML='<div class="empty">No he encontrado coincidencias.</div>';return}
+ for(const e of arr){
+  let info=data(e.name), d=document.createElement('div');d.className='card '+(e.h.kind==='directory'?'folder':'');
+  let icon=e.h.kind==='directory'?'📁':PDF.test(e.name)?'📄':'▶️', th=info.thumb||'';
+  d.innerHTML=`<div class="thumb">${th?`<img src="${th}" alt=""><span class="playmark">▶</span>`:icon}</div>
+  <div class="body"><div class="name">${esc(clean(e.name))}</div>
+  <div class="meta">${esc(e.rel||'')}<br>${e.h.kind==='directory'?'Carpeta':PDF.test(e.name)?'Documento PDF':'Vídeo'}</div>
+  <div class="row"><button class="small open">${e.h.kind==='directory'?'ABRIR':'REPRODUCIR'}</button></div></div>`;
+  d.querySelector('.open').onclick=async()=>{if(e.h.kind==='directory'){current=e.h;path=[root.name,e.name];entries=await list(current);draw(entries);drawBread();status.textContent=path.join(' › ')}else openEntry(e)};
+  d.querySelector('.thumb').onclick=()=>d.querySelector('.open').click();
+  grid.appendChild(d);
+ }
+}
+document.querySelectorAll('[data-filter]').forEach(b=>b.onclick=async()=>{
+ clearLiveThumbURLs();
+ if(root){current=root;path=[root.name]}
+ await quickAccess(b.dataset.filter,b.textContent.trim());
+});
+
+$('#scanAcademy').onclick=scanAcademy;loadAcademy();
+$('#clearToday').onclick=()=>setToday([]);renderToday();
+$('#pick').onclick=pick;$('#restore').onclick=restore;$('#home').onclick=goRoot;$('#search').oninput=()=>draw(entries);
+$('#favs').onclick=()=>{showFavs=!showFavs;draw(entries);status.textContent=showFavs?'Mostrando favoritos de esta carpeta':'Mostrando todos los elementos'};
+$('#close').onclick=()=>{$('#player').pause();$('#playerWrap').classList.remove('show');if(currentFile){let x=data(currentFile);x.note=$('#note').value;x.progress=$('#progress').value;x.A=A;x.B=B;x.position=$('#player').currentTime||0;x.last=Date.now();save(currentFile,x);localStorage.setItem('lastFile',currentFile)}draw(entries);if($('#coursePanel').classList.contains('show'))buildCourse()};
+document.querySelectorAll('[data-skip]').forEach(b=>b.onclick=()=>$('#player').currentTime=Math.max(0,$('#player').currentTime+Number(b.dataset.skip)));
+document.querySelectorAll('[data-speed]').forEach(b=>b.onclick=()=>$('#player').playbackRate=Number(b.dataset.speed));
+$('#full').onclick=()=>$('#player').requestFullscreen?.();
+$('#setA').onclick=()=>{A=$('#player').currentTime;updateAB()};$('#setB').onclick=()=>{B=$('#player').currentTime;updateAB()};
+$('#clearAB').onclick=()=>{A=B=null;loopAB=false;updateAB()};$('#loop').onclick=()=>{loopAB=!loopAB;updateAB()};
+function updateAB(){$('#abInfo').textContent=`A: ${A==null?'—':A.toFixed(1)+' s'}   B: ${B==null?'—':B.toFixed(1)+' s'}`;$('#loop').textContent='🔁 BUCLE A-B: '+(loopAB?'SÍ':'NO')}
+$('#player').ontimeupdate=()=>{if(loopAB&&A!=null&&B!=null&&B>A&&$('#player').currentTime>=B)$('#player').currentTime=A};
+$('#todayPlayer').onclick=()=>{if(currentFile){let e=entries.find(x=>x.name===currentFile);if(e)addToday(e,$('#todayPlayer'))}};
+$('#favBtn').onclick=()=>{let x=data(currentFile);x.fav=!x.fav;save(currentFile,x);$('#favBtn').textContent=x.fav?'★ FAVORITO':'☆ FAVORITO'};
+$('#progress').onchange=()=>{let x=data(currentFile);x.progress=$('#progress').value;save(currentFile,x)};
+window.addEventListener('beforeunload',()=>{if(currentFile){let x=data(currentFile);x.note=$('#note').value;x.progress=$('#progress').value;x.A=A;x.B=B;x.position=$('#player').currentTime||0;x.last=Date.now();save(currentFile,x);localStorage.setItem('lastFile',currentFile)}});
+</script>
+<script>if('serviceWorker' in navigator){addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}))}</script></body></html>
