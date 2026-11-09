@@ -1,0 +1,30 @@
+plugins { id 'com.android.application' }
+
+android {
+    namespace 'com.byomar.videosflamencos'
+    compileSdk 35
+    defaultConfig {
+        applicationId 'com.byomar.videosflamencos'
+        minSdk 26
+        targetSdk 35
+        versionCode 1
+        versionName '1.0-prueba'
+    }
+    sourceSets.main.assets.srcDir layout.buildDirectory.dir('generated/web')
+    sourceSets.main.res.srcDir layout.buildDirectory.dir('generated/icons')
+}
+
+tasks.register('copyWebAssets', Sync) {
+    from(rootProject.projectDir.parentFile) {
+        include 'index.html', 'android-files.js', 'manifest.json', 'icon-*.png'
+    }
+    into layout.buildDirectory.dir('generated/web')
+}
+tasks.register('copyLauncherIcon', Copy) {
+    from(new File(rootProject.projectDir.parentFile, 'icon-192.png'))
+    into layout.buildDirectory.dir('generated/icons/drawable')
+    rename { 'launcher.png' }
+}
+tasks.named('preBuild').configure { dependsOn 'copyWebAssets', 'copyLauncherIcon' }
+
+dependencies { implementation 'androidx.webkit:webkit:1.12.1'; testImplementation 'junit:junit:4.13.2' }
