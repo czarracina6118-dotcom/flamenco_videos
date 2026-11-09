@@ -3,4 +3,5 @@
 local.properties
 *.jks
 *.keystore
+android/app/src/androidTest/assets/playback-smoke.mp4
 

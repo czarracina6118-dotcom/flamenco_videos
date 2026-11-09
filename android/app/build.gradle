@@ -7,8 +7,9 @@ android {
         applicationId 'com.byomar.videosflamencos'
         minSdk 26
         targetSdk 35
-        versionCode 1
-        versionName '1.0-prueba'
+        versionCode 2
+        versionName '1.1-prueba'
+        testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
     }
     sourceSets.main.assets.srcDir layout.buildDirectory.dir('generated/web')
     sourceSets.main.res.srcDir layout.buildDirectory.dir('generated/icons')
@@ -27,4 +28,10 @@ tasks.register('copyLauncherIcon', Copy) {
 }
 tasks.named('preBuild').configure { dependsOn 'copyWebAssets', 'copyLauncherIcon' }
 
-dependencies { implementation 'androidx.webkit:webkit:1.12.1'; testImplementation 'junit:junit:4.13.2' }
+dependencies {
+    implementation 'androidx.webkit:webkit:1.12.1'
+    implementation 'org.nanohttpd:nanohttpd:2.3.1'
+    testImplementation 'junit:junit:4.13.2'
+    androidTestImplementation 'androidx.test:runner:1.6.2'
+    androidTestImplementation 'androidx.test.ext:junit:1.2.1'
+}

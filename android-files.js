@@ -27,7 +27,7 @@
     async getFile() {
       if (this.kind !== 'file') throw new Error('Selecciona un archivo');
       return {name: this.name, size: this.size, type: this.mime,
-        nativeId: this.id, nativeUrl: 'https://appassets.androidplatform.net/media/' + this.id};
+        nativeId: this.id, nativeUrl: this.mediaUrl};
     }
   }
   window.NativeFiles = {

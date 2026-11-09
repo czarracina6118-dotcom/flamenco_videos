@@ -46,6 +46,7 @@ public class MainActivity extends Activity {
     private final Map<String, Document> documents = new ConcurrentHashMap<>();
     private final Map<String, String> tokens = new ConcurrentHashMap<>();
     private WebView webView;
+    private MediaHttpServer mediaServer;
     private FrameLayout container;
     private View fullscreen;
     private WebChromeClient.CustomViewCallback fullscreenCallback;
@@ -71,6 +72,13 @@ public class MainActivity extends Activity {
 
     @Override public void onCreate(Bundle savedState) {
         super.onCreate(savedState);
+        mediaServer = new MediaHttpServer(this::openMedia);
+        try { mediaServer.start(10000, true); }
+        catch (java.io.IOException error) {
+            new AlertDialog.Builder(this).setMessage("No se pudo iniciar el lector local de vídeos.")
+                    .setPositiveButton("Cerrar", (dialog, which) -> finish()).show();
+            return;
+        }
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         container = new FrameLayout(this);
         webView = new WebView(this);
@@ -78,6 +86,8 @@ public class MainActivity extends Activity {
         webView.getSettings().setJavaScriptEnabled(true);
         webView.getSettings().setDomStorageEnabled(true);
         webView.getSettings().setMediaPlaybackRequiresUserGesture(false);
+        // Only the registered loopback media URLs are passed through to the network loader.
+        webView.getSettings().setMixedContentMode(android.webkit.WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
         webView.getSettings().setAllowFileAccess(false);
         webView.getSettings().setAllowContentAccess(false);
         webView.addJavascriptInterface(new FileBridge(), "AndroidFiles");
@@ -92,11 +102,8 @@ public class MainActivity extends Activity {
                 .addPathHandler("/assets/", new WebViewAssetLoader.AssetsPathHandler(this)).build();
         webView.setWebViewClient(new WebViewClient() {
             @Override public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
+                if (mediaServer.owns(request.getUrl().toString())) return null;
                 if (!isLocal(request.getUrl())) return empty(403, "Forbidden", null);
-                if (request.getUrl().getPathSegments().size() == 2
-                        && "media".equals(request.getUrl().getPathSegments().get(0))) {
-                    return streamDocument(request);
-                }
                 WebResourceResponse asset = loader.shouldInterceptRequest(request.getUrl());
                 return asset != null ? asset : empty(404, "Not Found", null);
             }
@@ -142,7 +149,8 @@ public class MainActivity extends Activity {
         documents.put(token, doc);
         return new JSONObject().put("id", token).put("name", doc.name)
                 .put("kind", doc.isDirectory() ? "directory" : "file")
-                .put("mime", doc.mime).put("size", doc.size);
+                .put("mime", doc.mime).put("size", doc.size)
+                .put("mediaUrl", doc.isDirectory() ? JSONObject.NULL : mediaServer.url(token));
     }
 
     private Document readRow(Uri tree, Cursor cursor) {
@@ -219,6 +227,8 @@ public class MainActivity extends Activity {
                     if ("restore".equals(method)) {
                         String saved = getPreferences(MODE_PRIVATE).getString("tree", null);
                         complete(id, saved == null ? null : rootInfo(Uri.parse(saved)), null, null);
+                    } else if ("diagnostics".equals(method)) {
+                        complete(id, new JSONObject().put("error", mediaServer.lastError()), null, null);
                     } else if ("list".equals(method)) {
                         complete(id, children(args.getString("id")), null, null);
                     } else if ("openPdf".equals(method)) {
@@ -264,50 +274,18 @@ public class MainActivity extends Activity {
                 headers == null ? new HashMap<>() : headers, new ByteArrayInputStream(new byte[0]));
     }
 
-    private WebResourceResponse streamDocument(WebResourceRequest request) {
-        InputStream input = null;
+    private MediaHttpServer.Opened openMedia(String token) throws Exception {
+        Document doc = document(token);
+        if (doc.isDirectory()) throw new Exception("Selecciona un vídeo");
+        AssetFileDescriptor descriptor = getContentResolver().openAssetFileDescriptor(doc.uri, "r");
+        if (descriptor == null) throw new Exception("Android no pudo abrir el archivo");
         try {
-            Document doc = document(request.getUrl().getLastPathSegment());
-            if (doc.isDirectory()) return empty(404, "Not Found", null);
-            AssetFileDescriptor descriptor = getContentResolver().openAssetFileDescriptor(doc.uri, "r");
-            if (descriptor == null) return empty(404, "Not Found", null);
             long size = descriptor.getLength() >= 0 ? descriptor.getLength() : doc.size;
-            String rangeHeader = null;
-            for (Map.Entry<String, String> header : request.getRequestHeaders().entrySet())
-                if ("range".equalsIgnoreCase(header.getKey())) rangeHeader = header.getValue();
-            ByteRange range = null;
-            if (rangeHeader != null && size >= 0) {
-                try { range = ByteRange.parse(rangeHeader, size); }
-                catch (IllegalArgumentException invalid) {
-                    descriptor.close();
-                    Map<String, String> headers = new HashMap<>();
-                    headers.put("Content-Range", "bytes */" + size);
-                    return empty(416, "Range Not Satisfiable", headers);
-                }
-            }
-            input = descriptor.createInputStream();
-            long count = size;
-            Map<String, String> headers = new HashMap<>();
-            headers.put("Cache-Control", "no-store");
-            if (size >= 0) headers.put("Accept-Ranges", "bytes");
-            if (range != null) {
-                MediaStream.skipFully(input, range.start);
-                count = range.length();
-                headers.put("Content-Range", "bytes " + range.start + "-" + range.end + "/" + size);
-            }
-            if (count >= 0) headers.put("Content-Length", Long.toString(count));
-            String mime = doc.mime;
-            if ("application/octet-stream".equals(mime)) {
-                String extension = doc.name.contains(".") ? doc.name.substring(doc.name.lastIndexOf(".") + 1) : "";
-                String guessed = android.webkit.MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension.toLowerCase(java.util.Locale.ROOT));
-                if (guessed != null) mime = guessed;
-            }
-            return new WebResourceResponse(mime, null, range == null ? 200 : 206,
-                    range == null ? "OK" : "Partial Content", headers, new MediaStream(input, count));
-        } catch (Exception error) {
-            if (input != null) try { input.close(); } catch (Exception ignored) { }
-            return empty(error instanceof SecurityException ? 403 : 404, "Unavailable", null);
-        }
+            String extension = doc.name.contains(".") ? doc.name.substring(doc.name.lastIndexOf('.') + 1).toLowerCase(java.util.Locale.ROOT) : "";
+            String mime = android.webkit.MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension);
+            if (mime == null) mime = doc.mime;
+            return new MediaHttpServer.Opened(descriptor.createInputStream(), size, mime);
+        } catch (Exception error) { descriptor.close(); throw error; }
     }
 
     @Override protected void onPause() {
@@ -330,6 +308,7 @@ public class MainActivity extends Activity {
     @Override protected void onDestroy() {
         destroyed = true;
         files.shutdownNow();
+        if (mediaServer != null) mediaServer.stop();
         if (webView != null) {
             webView.removeJavascriptInterface("AndroidFiles"); webView.stopLoading(); webView.destroy(); webView = null;
         }

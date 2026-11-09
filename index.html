@@ -334,9 +334,15 @@ async function openEntry(e){
 if(e.h.kind==='directory'){current=e.h;path.push(e.name);showFavs=false;$('#search').value='';await render();return}
 let f=await e.h.getFile(); if(PDF.test(e.name)){if(f.nativeId){await NativeFiles.call('openPdf',{id:f.nativeId});return}let u=mediaURL(f);window.open(u,'_blank');setTimeout(()=>URL.revokeObjectURL(u),60000);return}
 currentFile=e.name;if(objectURL)URL.revokeObjectURL(objectURL);objectURL=mediaURL(f);let p=$('#player');
-p.muted=false;p.defaultMuted=false;p.volume=1;p.removeAttribute('muted');p.src=objectURL;
+p.muted=false;p.defaultMuted=false;p.volume=1;p.removeAttribute('muted');if(f.nativeUrl)p.crossOrigin='anonymous';p.src=objectURL;
 $('#playerTitle').textContent=clean(e.name);let inf=data(e.name);$('#note').value=inf.note||'';$('#progress').value=inf.progress||'pendiente';$('#favBtn').textContent=inf.fav?'★ FAVORITO':'☆ FAVORITO';A=inf.A??null;B=inf.B??null;loopAB=false;updateAB();$('#playerWrap').classList.add('show');p.onloadedmetadata=()=>{if(inf.position&&inf.position<p.duration-2)p.currentTime=inf.position};
-p.onerror=()=>alert('No se pudo reproducir este vídeo. Comprueba que sigue en la carpeta y que su formato es compatible con tu Android.');
+p.onerror=async()=>{
+ const error=p.error;
+ if(!error || error.code===1)return;
+ let nativeError='';
+ if(window.NativeFiles){try{nativeError=(await NativeFiles.call('diagnostics')).error||''}catch(e){}}
+ alert('No se pudo iniciar el vídeo.\n\nDetalle: '+error.code+' · '+(error.message||'Error del reproductor')+(nativeError?'\nLectura: '+nativeError:''));
+};
 p.load();
 p.addEventListener('canplay',()=>{p.muted=false;p.volume=1;$('#soundBtn').textContent='🔊 SONIDO';p.play().catch(()=>{})},{once:true});
 }
@@ -355,7 +361,7 @@ async function showLiveThumbs(){
   let card=cards[i]; if(!card)continue; let box=card.querySelector('.thumb');
   try{
    let f=await e.h.getFile(),u=mediaURL(f);liveThumbURLs.push(u);
-   box.innerHTML='';let v=document.createElement('video');v.muted=true;v.playsInline=true;v.preload='metadata';v.src=u;
+   box.innerHTML='';let v=document.createElement('video');v.muted=true;v.playsInline=true;v.preload='metadata';if(f.nativeUrl)v.crossOrigin='anonymous';v.src=u;
    v.style.cssText='width:100%;height:100%;object-fit:cover;pointer-events:none';
    box.appendChild(v);let mark=document.createElement('span');mark.className='playmark';mark.textContent='▶';box.appendChild(mark);
    v.addEventListener('loadedmetadata',()=>{try{v.currentTime=Math.min(1,Math.max(.1,(v.duration||1)*.03))}catch(e){}},{once:true});
@@ -368,7 +374,7 @@ async function makeThumb(handle,name){
  let u=null;
  try{
   let f=await handle.getFile();u=mediaURL(f);
-  let v=document.createElement('video');v.muted=true;v.playsInline=true;v.preload='auto';v.src=u;
+  let v=document.createElement('video');v.muted=true;v.playsInline=true;v.preload='auto';if(f.nativeUrl)v.crossOrigin='anonymous';v.src=u;
   await Promise.race([
    new Promise((ok,no)=>{v.onloadeddata=ok;v.onerror=()=>no(new Error('video'))}),
    new Promise((_,no)=>setTimeout(()=>no(new Error('timeout')),7000))

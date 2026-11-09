@@ -7,7 +7,7 @@ de la aplicación: los reproduce por partes desde el almacenamiento elegido.
 
 ## Uso
 
-1. Instalar `Videos-Flamencos-1.0-prueba.apk`; aparece como «Vídeos APK».
+1. Instalar `Videos-Flamencos-1.1-prueba.apk`; aparece como «Vídeos APK».
 2. Pulsar «ELEGIR CARPETA GUITARRA», entrar en la carpeta y confirmar «Usar esta carpeta».
 3. Abrir una subcarpeta y reproducir un vídeo.
 4. Para recuperar la carpeta al volver, pulsar el botón de carpeta guardada.
@@ -40,3 +40,9 @@ velocidades, A–B, PDF, miniaturas y guardado al salir.
 La firma es de prueba: una compilación futura puede requerir desinstalar.
 Antes de actualizaciones que necesiten conservar progreso hay que configurar
 una clave de firma privada permanente y una copia de seguridad de los datos.
+
+Versión 1.1: el motor multimedia recibe los vídeos por una conexión local de bucle
+interno (127.0.0.1), en lugar de un recurso interceptado de WebView. Solo se
+aceptan rutas de sesión aleatorias y archivos registrados desde la carpeta elegida.
+No se publican archivos en la red Wi-Fi. Las pruebas incluyen peticiones HTTP
+reales completas y parciales, saltos hacia delante y atrás, HEAD y rangos sufijo.
