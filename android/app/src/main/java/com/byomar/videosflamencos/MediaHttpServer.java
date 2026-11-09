@@ -32,6 +32,8 @@ final class MediaHttpServer extends NanoHTTPD {
         response.addHeader("Access-Control-Expose-Headers", "Content-Length, Content-Range, Accept-Ranges");
         response.addHeader("Access-Control-Allow-Private-Network", "true");
         response.addHeader("Cache-Control", "no-store");
+        // Avoid stale pooled HEAD/range connections in Android media loaders.
+        response.addHeader("Connection", "close");
         return response;
     }
 
@@ -65,7 +67,12 @@ final class MediaHttpServer extends NanoHTTPD {
             }
             long length = file.size;
             if (range != null) { MediaStream.skipFully(input, range.start); length = range.length(); }
-            MediaStream body = new MediaStream(input, length);
+            InputStream data = input;
+            if (session.getMethod() == Method.HEAD) {
+                input.close();
+                data = new java.io.ByteArrayInputStream(new byte[0]);
+            }
+            MediaStream body = new MediaStream(data, length);
             Response.Status status = range == null ? Response.Status.OK : Response.Status.PARTIAL_CONTENT;
             Response response = length >= 0 ? newFixedLengthResponse(status, file.mime, body, length)
                     : newChunkedResponse(status, file.mime, body);
