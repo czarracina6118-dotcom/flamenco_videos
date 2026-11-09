@@ -34,8 +34,13 @@ jobs:
         run: gradle --no-daemon assembleDebug lintDebug testDebugUnitTest
       - name: Preparar vídeo de prueba
         run: |
-          mkdir -p android/app/src/androidTest/assets
-          ffmpeg -hide_banner -loglevel error -f lavfi -i testsrc=size=160x120:rate=15 -f lavfi -i sine=frequency=440:sample_rate=44100 -t 4 -c:v libx264 -pix_fmt yuv420p -c:a aac -movflags +faststart android/app/src/androidTest/assets/playback-smoke.mp4
+          python3 - <<'PYCODE'
+          import base64
+          from pathlib import Path
+          out = Path('android/app/src/androidTest/assets/playback-smoke.mp4')
+          out.parent.mkdir(parents=True, exist_ok=True)
+          out.write_bytes(base64.b64decode(Path('android/playback-smoke.b64').read_text().strip(), validate=True))
+          PYCODE
       - name: Permitir aceleración del emulador
         run: sudo chmod 666 /dev/kvm
       - name: Probar reproducción y salto en Android
