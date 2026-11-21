@@ -7,6 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="apple-touch-icon" href="icon-180.png">
 <title>Mi Curso de Guitarra</title>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
 :root{--bg:#111318;--panel:#1c2028;--panel2:#252b35;--txt:#f7f7f7;--muted:#b9c0ca;--accent:#f2b84b;--ok:#6bd58b;--line:#343b47}
 *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--txt);font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;font-size:18px}
@@ -71,11 +72,27 @@ video#player{width:100%;max-height:62vh;background:black;border-radius:12px}
 header{padding-top:max(14px,env(safe-area-inset-top))}
 main,.playerWrap{padding-left:max(16px,env(safe-area-inset-left));padding-right:max(16px,env(safe-area-inset-right));padding-bottom:max(16px,env(safe-area-inset-bottom))}
 button{min-height:44px}#fileHelp{line-height:1.5}
+.drivePanel{border:2px solid var(--accent);border-radius:16px;background:var(--panel);padding:16px;margin:14px 0}
+.drivePanel h2{font-size:22px;margin:0 0 8px}.drivePanel p{line-height:1.5}
+.driveFolders{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin:12px 0}
+#drivePath{overflow-wrap:anywhere;margin:12px 0}#driveStatus{line-height:1.5}
 </style>
 <link rel="manifest" href="manifest.json"><meta name="theme-color" content="#11151d"><meta name="mobile-web-app-capable" content="yes"><link rel="icon" href="icon.svg" type="image/svg+xml"></head>
 <body>
-<header><h1>🎸 Mi Curso de Guitarra · v7.3</h1><div class="sub">Videoteca personal · tus archivos no se suben a Internet</div></header>
+<header><h1>🎸 Mi Curso de Guitarra · v7.4</h1><div class="sub">Videoteca personal · tus archivos no se suben a Internet</div></header>
 <main>
+<section class="drivePanel" aria-labelledby="driveHeading">
+<h2 id="driveHeading">Google Drive · mi carpeta GUITARRA</h2>
+<p>Conecta tu cuenta para abrir los cursos con sus subcarpetas. El índice lee los nombres; los vídeos se reproducen al abrirlos.</p>
+<div class="row"><button class="primary" id="driveConnect">CONECTAR GOOGLE DRIVE</button><button id="driveChange" hidden>CAMBIAR CARPETA DE DRIVE</button><button id="driveDisconnect" hidden>DESCONECTAR DRIVE</button></div>
+<p class="meta">Google pedirá permiso para ver y descargar archivos de Drive. El curso solo realiza operaciones de lectura.</p>
+<div id="driveStatus" class="status" role="status">Pulsa CONECTAR GOOGLE DRIVE y elige la cuenta donde guardas GUITARRA.</div>
+<div id="driveBrowser" hidden>
+<div class="row"><button id="driveBack">SUBIR UNA CARPETA</button><button id="driveBrowseRoot">MI UNIDAD</button></div>
+<div id="drivePath"></div><div id="driveFolders" class="driveFolders"></div>
+<button class="primary" id="driveUse" disabled>USAR ESTA CARPETA</button>
+</div>
+</section>
 <div class="hero">
 <h2>🔥 Academia Flamenca de Omar</h2>
 <p>Tu videoteca convertida en curso. Elige tus vídeos desde Archivos o una carpeta de tu dispositivo.</p>
@@ -135,7 +152,7 @@ button{min-height:44px}#fileHelp{line-height:1.5}
 <div class="courseList" id="courseList"></div>
 </div>
 <div class="toolbar">
-<button class="primary" id="pick">📁 ELEGIR CARPETA GUITARRA</button>
+<button class="primary" id="pick">📁 ELEGIR CARPETA LOCAL</button>
 <button id="pickFiles">🎬 ELEGIR VÍDEOS</button>
 <button id="restore">↻ RECUPERAR CARPETA</button>
 <button id="home">🏠 INICIO</button>
@@ -145,7 +162,7 @@ button{min-height:44px}#fileHelp{line-height:1.5}
 <input type="file" id="folderInput" webkitdirectory multiple hidden>
 <input type="file" id="filesInput" accept="video/*,.mp4,.m4v,.mov,.webm,.mkv,.ogv,.pdf" multiple hidden>
 <div class="status" id="status" role="status">Selecciona la carpeta GUITARRA o elige vídeos.</div>
-<p class="meta" id="fileHelp">En iPad, abre esta página en Safari. Para carpetas necesitas iPadOS 18.4 o posterior; también puedes usar ELEGIR VÍDEOS. Empieza con un curso pequeño. Al volver a abrir la aplicación tendrás que seleccionarlo de nuevo; tus notas y tu progreso se conservan en este navegador. Si eliges archivos de Drive o iCloud, Archivos puede descargarlos antes de abrirlos.</p>
+<p class="meta" id="fileHelp">Para GUITARRA en Google Drive, usa CONECTAR GOOGLE DRIVE, arriba del curso. El selector de carpetas del iPad puede mostrar Drive en gris. ELEGIR CARPETA LOCAL y ELEGIR VÍDEOS sirven para una selección temporal; tendrás que repetirla al reabrir. Las notas y el progreso se guardan en este navegador.</p>
 <div class="breadcrumb" id="bread"></div>
 <div class="grid" id="grid"></div>
 </main>
@@ -174,9 +191,10 @@ button{min-height:44px}#fileHelp{line-height:1.5}
 </section>
 
 <script src="selected-files.js"></script>
+<script src="drive-client.js"></script>
 <script>
 const VIDEO=/\.(mp4|webm|m4v|mov|ogv|mkv)$/i, PDF=/\.pdf$/i;
-let root=null,current=null,path=[],entries=[],currentFile=null,objectURL=null,A=null,B=null,loopAB=false,showFavs=false;
+let root=null,current=null,path=[],entries=[],currentFile=null,currentEntry=null,objectURL=null,A=null,B=null,loopAB=false,showFavs=false;
 const $=s=>document.querySelector(s), grid=$('#grid'), status=$('#status'), bread=$('#bread');
 const dbp=new Promise((res,rej)=>{let r=indexedDB.open('guitarraDB',1);r.onupgradeneeded=()=>r.result.createObjectStore('handles');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)});
 async function dbSet(k,v){let db=await dbp,t=db.transaction('handles','readwrite');t.objectStore('handles').put(v,k)}
@@ -184,6 +202,25 @@ async function dbGet(k){let db=await dbp;return new Promise(r=>{let q=db.transac
 const key=(name)=>'file:'+name;
 function data(name){try{return JSON.parse(localStorage.getItem(key(name)))||{}}catch{return {}}}
 function save(name,obj){localStorage.setItem(key(name),JSON.stringify(obj))}
+const entryKey=e=>e.h.drive?'drive:'+e.h.id:e.name;
+const itemKey=it=>it.driveId?'drive:'+it.driveId:it.name;
+const academyKey=()=>root?.drive?'academyIndex:drive:'+root.id:'academyIndex';
+async function mediaSource(handle){return handle.getMediaURL?handle.getMediaURL():URL.createObjectURL(await handle.getFile())}
+function revokeMedia(url){if(url?.startsWith('blob:'))URL.revokeObjectURL(url)}
+async function useDriveRoot(dir){
+ savePlayerState();$('#player').pause();$('#player').removeAttribute('src');$('#player').load();$('#playerWrap').classList.remove('show');currentFile=null;currentEntry=null;revokeMedia(objectURL);objectURL=null;
+ clearLiveThumbURLs();root=dir;current=dir;path=[dir.name];showFavs=false;$('#search').value='';$('#coursePanel').classList.remove('show');
+ let cached=[];try{cached=JSON.parse(localStorage.getItem(academyKey()))||[]}catch{}
+ renderAcademy(cached);renderRecents();await render();
+ if(!cached.length){$('#academyMsg').textContent='Carpeta de Drive abierta. Pulsa CREAR / ACTUALIZAR ÍNDICE para reunir todos sus cursos.';}
+ else $('#academyMsg').textContent='Índice recordado: '+cached.length+' cursos de esta carpeta de Drive.';
+}
+function closeDriveRoot(){
+ if(!root?.drive)return;
+ savePlayerState();$('#player').pause();$('#player').removeAttribute('src');$('#player').load();$('#playerWrap').classList.remove('show');
+ clearLiveThumbURLs();currentFile=null;currentEntry=null;root=current=null;entries=[];path=[];grid.replaceChildren();bread.replaceChildren();
+ $('#coursePanel').classList.remove('show');renderAcademy([]);updateStats([]);status.textContent='Drive desconectado.';
+}
 async function permission(h){if((await h.queryPermission({mode:'read'}))==='granted')return true;return (await h.requestPermission({mode:'read'}))==='granted'}
 async function acceptSelection(input){
  if(!input.files.length)return;
@@ -199,7 +236,7 @@ $('#filesInput').onchange=()=>acceptSelection($('#filesInput')).catch(e=>status.
 $('#pickFiles').onclick=()=>$('#filesInput').click();
 async function pick(){if(!window.showDirectoryPicker){$('#folderInput').click();return}
 try{root=await showDirectoryPicker({mode:'read'});if(await permission(root)){await dbSet('root',root);current=root;path=[root.name];showFavs=false;await render()}}catch(e){if(e.name!=='AbortError')status.textContent='No se pudo abrir la carpeta: '+e.message}}
-async function restore(){if(root?.selectedFiles){await goRoot();return}if(!window.showDirectoryPicker){status.textContent='Vuelve a elegir la misma carpeta o los vídeos para recuperar el acceso. Tus notas y progreso siguen guardados.';return}let h=await dbGet('root');if(!h){status.textContent='No hay una carpeta guardada. Pulsa ELEGIR CARPETA GUITARRA.';return}try{if(await permission(h)){root=h;current=h;path=[h.name];showFavs=false;await render()}}catch(e){status.textContent='No se ha conservado el permiso. Selecciona de nuevo GUITARRA.'}}
+async function restore(){if(root?.drive){if(!DriveConnection.accessTokenAvailable())DriveConnection.connect();else await goRoot();return}if(!root&&window.DriveConnection?.saved()){DriveConnection.connect();return}if(root?.selectedFiles){await goRoot();return}if(!window.showDirectoryPicker){status.textContent='Vuelve a elegir la misma carpeta o los vídeos para recuperar el acceso. Tus notas y progreso siguen guardados.';return}let h=await dbGet('root');if(!h){status.textContent='No hay una carpeta guardada. Pulsa ELEGIR CARPETA LOCAL.';return}try{if(await permission(h)){root=h;current=h;path=[h.name];showFavs=false;await render()}}catch(e){status.textContent='No se ha conservado el permiso. Selecciona de nuevo la carpeta local.'}}
 async function list(dir){let a=[];for await(const [name,h] of dir.entries()){if(h.kind==='directory'||VIDEO.test(name)||PDF.test(name))a.push({name,h})}return a.sort((x,y)=>x.h.kind===y.h.kind?x.name.localeCompare(y.name,'es',{numeric:true}):x.h.kind==='directory'?-1:1)}
 async function render(){
 if(!current)return; status.textContent='Leyendo '+path.join(' › ')+'…'; entries=await list(current); draw(entries); status.textContent=`${entries.length} elementos · ${path.join(' › ')}`; drawBread();
@@ -247,11 +284,11 @@ async function scanAcademy(){
    if(hh.kind==='file'&&VIDEO.test(name))videoCount++;
    else if(hh.kind==='directory')childDirs.push([name,hh]);
   }
-  if(videoCount>0)courses.push({name:parts[parts.length-1]||root.name,path:[root.name,...parts],videos:videoCount});
-  if(depth<5)for(const [name,hh] of childDirs)await walk(hh,[...parts,name],depth+1);
+  if(videoCount>0)courses.push({name:parts[parts.length-1]||root.name,path:[root.name,...parts],videos:videoCount,...(dir.drive?{driveId:dir.id,rootId:root.id}:{})});
+  if(root.drive||depth<5)for(const [name,hh] of childDirs)await walk(hh,[...parts,name],depth+1);
  }
  try{
-  await walk(root,[],0);localStorage.setItem('academyIndex',JSON.stringify(courses));
+  root.drive&&DriveConnection.client.clearCache();await walk(root,[],0);localStorage.setItem(academyKey(),JSON.stringify(courses));
   $('#academyMsg').textContent=`Índice listo: ${courses.length} cursos con vídeos · ${seen} elementos revisados.`;
   renderAcademy(courses)
  }catch(e){$('#academyMsg').textContent='No se pudo terminar el índice: '+e.message}
@@ -261,24 +298,26 @@ function courseStats(c){
  let done=0;
  // Exact global progress is derived from stored file metadata when course is opened;
  // here show known completed count saved for this course, if any.
- let cp;try{cp=JSON.parse(localStorage.getItem('courseProgress:'+c.path.join('/')))||{}}catch{cp={}}
+ let cp;try{cp=JSON.parse(localStorage.getItem((c.driveId?'courseProgress:drive:'+c.driveId:'courseProgress:'+c.path.join('/'))))||{}}catch{cp={}}
  done=cp.done||0;let pct=c.videos?Math.round(Math.min(done,c.videos)/c.videos*100):0;return {done,pct}
 }
 async function openIndexedCourse(c){
- if(!root)return;
+ if(!root){status.textContent='Conecta Drive o elige tu carpeta para abrir este curso.';return}
  try{
-  let dir=root;for(let i=1;i<c.path.length;i++)dir=await dir.getDirectoryHandle(c.path[i]);
+  let dir=root;
+  if(c.driveId){if(!root.drive||c.rootId!==root.id)throw new Error('Conecta la carpeta de Drive de este curso.');dir=DriveConnection.client.directory(await DriveConnection.client.metadata(c.driveId),c.path);}
+  else for(let i=1;i<c.path.length;i++)dir=await dir.getDirectoryHandle(c.path[i]);
   current=dir;path=[...c.path];entries=await list(current);draw(entries);drawBread();
   rememberRecent(c);buildCourse();status.textContent=`Curso abierto: ${c.name}`;
- }catch(e){status.textContent='No encuentro esa carpeta. Actualiza el índice de la academia.'}
+ }catch(e){status.textContent='No se pudo abrir el curso: '+e.message}
 }
 function rememberRecent(c){
- let a=[];try{a=JSON.parse(localStorage.getItem('recentCourses'))||[]}catch{}
+ let a=[];try{a=JSON.parse(localStorage.getItem((root?.drive?'recentCourses:drive:'+root.id:'recentCourses')))||[]}catch{}
  a=a.filter(x=>x.path.join('/')!==c.path.join('/'));a.unshift(c);a=a.slice(0,4);
- localStorage.setItem('recentCourses',JSON.stringify(a));renderRecents()
+ localStorage.setItem((root?.drive?'recentCourses:drive:'+root.id:'recentCourses'),JSON.stringify(a));renderRecents()
 }
 function renderRecents(){
- let box=$('#recentCourses');if(!box)return;let a=[];try{a=JSON.parse(localStorage.getItem('recentCourses'))||[]}catch{}
+ let box=$('#recentCourses');if(!box)return;let a=[];try{a=JSON.parse(localStorage.getItem((root?.drive?'recentCourses:drive:'+root.id:'recentCourses')))||[]}catch{}
  if(!a.length){box.innerHTML='<div class="meta">Aún no hay cursos recientes.</div>';return}
  box.innerHTML='';a.forEach(c=>{let d=document.createElement('div');d.className='courseCard';d.innerHTML=`<h3>${esc(c.name)}</h3><div class="meta">${c.videos} lecciones</div><button class="small primary">▶ CONTINUAR</button>`;d.querySelector('button').onclick=()=>openIndexedCourse(c);box.appendChild(d)})
 }
@@ -292,7 +331,7 @@ function renderAcademy(courses){
  })
 }
 function loadAcademy(){
- let a=[];try{a=JSON.parse(localStorage.getItem('academyIndex'))||[]}catch{}
+ let a=[];try{a=JSON.parse(localStorage.getItem(academyKey()))||[]}catch{}
  if(a.length){renderAcademy(a);$('#academyMsg').textContent=`Índice guardado: ${a.length} cursos. Pulsa actualizar si has añadido vídeos.`}
  renderRecents()
 }
@@ -301,9 +340,9 @@ function todayKey(){let d=new Date();return 'practice:'+d.getFullYear()+'-'+(d.g
 function getToday(){try{return JSON.parse(localStorage.getItem(todayKey()))||[]}catch{return []}}
 function setToday(a){localStorage.setItem(todayKey(),JSON.stringify(a));renderToday()}
 function addToday(e,button=null){
- let a=getToday();if(a.some(x=>x.name===e.name)){status.textContent='✓ Este vídeo YA ESTÁ en la práctica de hoy.';if(button){let old=button.textContent;button.textContent='✓ YA AÑADIDO';setTimeout(()=>button.textContent=old,1200)}return}
+ let a=getToday();if(a.some(x=>itemKey(x)===entryKey(e))){status.textContent='✓ Este vídeo YA ESTÁ en la práctica de hoy.';if(button){let old=button.textContent;button.textContent='✓ YA AÑADIDO';setTimeout(()=>button.textContent=old,1200)}return}
  if(a.length>=3){status.textContent='La sesión de hoy ya tiene 3 vídeos. Limpia uno o termina la sesión antes de añadir más.';return}
- a.push({name:e.name,path:[...path]});setToday(a);
+ a.push({name:e.name,path:[...(e.h.parts||path)],...(e.h.drive?{driveId:e.h.id,rootId:root.id}:{})});setToday(a);
 status.textContent='✓ AÑADIDO A PRÁCTICA DE HOY: '+clean(e.name);
 let btn=button;if(btn){let old=btn.textContent;btn.textContent='✓ AÑADIDO';btn.disabled=true;setTimeout(()=>{btn.textContent=old;btn.disabled=false},1200)}
 $('#todayList')?.scrollIntoView({behavior:'smooth',block:'center'})
@@ -312,6 +351,7 @@ function findCurrentEntry(name){return entries.find(x=>x.name===name&&x.h.kind==
 async function resolveToday(it){
  if(!root)return null;
  try{
+  if(it.driveId){if(!root.drive||it.rootId!==root.id)return null;return {name:it.name,h:DriveConnection.client.file(await DriveConnection.client.metadata(it.driveId),it.path)};}
   let dir=root, pp=Array.isArray(it.path)?it.path:[];
   for(let i=1;i<pp.length;i++) dir=await dir.getDirectoryHandle(pp[i]);
   let fh=await dir.getFileHandle(it.name);
@@ -322,7 +362,7 @@ function renderToday(){
  let a=getToday(),box=$('#todayList');if(!box)return;
  if(!a.length){box.innerHTML='<div class="meta">Todavía no has añadido vídeos a la práctica de hoy.</div>';return}
  box.innerHTML='';
- a.forEach((it,i)=>{let d=document.createElement('div');d.className='todayItem';let inf=data(it.name);
+ a.forEach((it,i)=>{let d=document.createElement('div');d.className='todayItem';let inf=data(itemKey(it));
  d.innerHTML=`<b>${i+1}. ${esc(clean(it.name))}</b><div class="meta">${inf.progress||'pendiente'}</div><button class="small playToday">▶ REPRODUCIR</button><button class="small removeToday">✕</button>`;
  d.querySelector('.playToday').onclick=async()=>{
  status.textContent='Abriendo vídeo…';
@@ -330,43 +370,45 @@ function renderToday(){
  if(e){await openEntry(e);status.textContent='Vídeo abierto desde Práctica de hoy.'}
  else status.textContent='No encuentro este vídeo. Quítalo de Práctica de hoy y vuelve a añadirlo desde su carpeta para guardar su ruta correctamente.';
 };
- d.querySelector('.removeToday').onclick=()=>setToday(getToday().filter(x=>x.name!==it.name));box.appendChild(d)})
+ d.querySelector('.removeToday').onclick=()=>setToday(getToday().filter(x=>itemKey(x)!==itemKey(it)));box.appendChild(d)})
 }
 
 function updateStats(items){
  let files=items.filter(x=>x.h.kind==='file'&&VIDEO.test(x.name)),pr=0,dn=0;
- files.forEach(x=>{let d=data(x.name);if(d.progress==='practicando')pr++;if(d.progress==='aprendido')dn++});
+ files.forEach(x=>{let d=data(entryKey(x));if(d.progress==='practicando')pr++;if(d.progress==='aprendido')dn++});
  $('#nVideos').textContent=files.length;$('#nPract').textContent=pr;$('#nDone').textContent=dn;$('#pct').textContent=files.length?Math.round(dn/files.length*100)+'%':'0%';
- let lf=localStorage.getItem('lastFile'), hit=items.find(x=>x.name===lf);
+ let lf=localStorage.getItem('lastFile'), hit=items.find(x=>entryKey(x)===lf);
  if(hit){$('#resume').classList.add('show');$('#resumeName').textContent=clean(hit.name);$('#resumeBtn').onclick=()=>openEntry(hit)}else $('#resume').classList.remove('show');
 }
 function draw(items){updateStats(items);renderToday();
 let q=$('#search').value.trim().toLowerCase(); let arr=items.filter(x=>x.name.toLowerCase().includes(q));
-if(showFavs)arr=arr.filter(x=>x.h.kind==='file'&&data(x.name).fav);
+if(showFavs)arr=arr.filter(x=>x.h.kind==='file'&&data(entryKey(x)).fav);
 grid.innerHTML=''; if(!arr.length){grid.innerHTML='<div class="empty">No hay resultados.</div>';return}
-for(const e of arr){let d=document.createElement('div');d.className='card '+(e.h.kind==='directory'?'folder':'');let info=data(e.name), icon=e.h.kind==='directory'?'📁':PDF.test(e.name)?'📄':'▶️';
+for(const e of arr){let d=document.createElement('div');d.className='card '+(e.h.kind==='directory'?'folder':'');let info=data(entryKey(e)), icon=e.h.kind==='directory'?'📁':PDF.test(e.name)?'📄':'▶️';
 let th=info.thumb||'';d.innerHTML=`<div class="thumb">${th?`<img src="${th}" alt=""><span class="playmark">▶</span>`:icon}</div><div class="body"><div class="name">${esc(clean(e.name))}</div><div class="meta">${e.h.kind==='directory'?'Carpeta':PDF.test(e.name)?'Documento PDF':'Vídeo'} ${info.progress?' · '+info.progress:''}</div>${e.h.kind==='file'?`<div><span class="badge">${info.fav?'★ Favorito':'Vídeo de estudio'}</span>${info.progress==='aprendido'?'<span class="badge">✓ Aprendido</span>':''}</div>`:''}<div class="row"><button class="small open">${e.h.kind==='directory'?'ABRIR':'REPRODUCIR'}</button>${e.h.kind==='file'?`<button class="small star">${info.fav?'★':'☆'}</button><button class="small todayAdd">＋ HOY</button>`:''}</div></div>`;
-d.querySelector('.open').onclick=()=>openEntry(e);d.querySelector('.thumb').onclick=()=>openEntry(e); let st=d.querySelector('.star');if(st)st.onclick=()=>{let x=data(e.name);x.fav=!x.fav;save(e.name,x);draw(entries)};
+d.querySelector('.open').onclick=()=>openEntry(e);d.querySelector('.thumb').onclick=()=>openEntry(e); let st=d.querySelector('.star');if(st)st.onclick=()=>{let x=data(entryKey(e));x.fav=!x.fav;save(entryKey(e),x);draw(entries)};
 let ta=d.querySelector('.todayAdd');if(ta)ta.onclick=()=>addToday(e,ta);
 grid.appendChild(d)}
 }
 function clean(n){return n.replace(/\.[^.]+$/,'').replace(/[-_+]+/g,' ').replace(/\s+/g,' ').trim()}
 function esc(s){return s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 async function openEntry(e){
-if(e.h.kind==='directory'){current=e.h;path.push(e.name);showFavs=false;$('#search').value='';await render();return}
-let f=await e.h.getFile(); if(PDF.test(e.name)){let u=URL.createObjectURL(f);window.open(u,'_blank');setTimeout(()=>URL.revokeObjectURL(u),60000);return}
-currentFile=e.name;$('#playerError').hidden=true;if(objectURL)URL.revokeObjectURL(objectURL);objectURL=URL.createObjectURL(f);let p=$('#player');
+try{
+if(e.h.kind==='directory'){current=e.h;path=e.h.parts?[...e.h.parts]:(e.rel?[root.name,...e.rel.split(' › ')]:[...path,e.name]);showFavs=false;$('#search').value='';await render();return}
+if(PDF.test(e.name)){let u=URL.createObjectURL(await e.h.getFile());window.open(u,'_blank');setTimeout(()=>URL.revokeObjectURL(u),60000);return}
+let source=await mediaSource(e.h);savePlayerState();currentEntry=e;currentFile=entryKey(e);$('#playerError').hidden=true;$('#playerError').dataset.driveError='';revokeMedia(objectURL);objectURL=source;let p=$('#player');
 p.muted=false;p.defaultMuted=false;p.volume=1;p.removeAttribute('muted');p.src=objectURL;
-$('#playerTitle').textContent=clean(e.name);let inf=data(e.name);$('#note').value=inf.note||'';$('#progress').value=inf.progress||'pendiente';$('#favBtn').textContent=inf.fav?'★ FAVORITO':'☆ FAVORITO';A=inf.A??null;B=inf.B??null;loopAB=false;updateAB();$('#playerWrap').classList.add('show');p.onloadedmetadata=()=>{if(inf.position&&inf.position<p.duration-2)p.currentTime=inf.position};
+$('#playerTitle').textContent=clean(e.name);let inf=data(entryKey(e));$('#note').value=inf.note||'';$('#progress').value=inf.progress||'pendiente';$('#favBtn').textContent=inf.fav?'★ FAVORITO':'☆ FAVORITO';A=inf.A??null;B=inf.B??null;loopAB=false;updateAB();$('#playerWrap').classList.add('show');p.onloadedmetadata=()=>{if(inf.position&&inf.position<p.duration-2)p.currentTime=inf.position};
 p.load();
 p.addEventListener('canplay',()=>{p.muted=false;p.volume=1;$('#soundBtn').textContent='🔊 SONIDO';p.play().catch(()=>{})},{once:true});
+}catch(error){status.textContent='No se pudo abrir el vídeo: '+error.message;if(e.h.drive)$('#driveStatus').textContent=error.message;}
 }
 function drawBread(){bread.innerHTML='';let b=document.createElement('span');b.className='crumb';b.textContent='🏠 '+path[0];b.onclick=()=>goRoot();bread.appendChild(b);if(path.length>1){let s=document.createElement('span');s.textContent='› '+path.slice(1).join(' › ');bread.appendChild(s)}}
 async function goRoot(){if(root){clearLiveThumbURLs();current=root;path=[root.name];showFavs=false;$('#search').value='';$('#coursePanel').classList.remove('show');await render()}}
 
 
 let liveThumbURLs=[];
-function clearLiveThumbURLs(){for(const u of liveThumbURLs)try{URL.revokeObjectURL(u)}catch(e){} liveThumbURLs=[]}
+function clearLiveThumbURLs(){for(const u of liveThumbURLs)try{revokeMedia(u)}catch(e){} liveThumbURLs=[]}
 async function showLiveThumbs(){
  let cards=[...grid.querySelectorAll('.card')], vids=entries.filter(x=>x.h.kind==='file'&&VIDEO.test(x.name));
  if(!vids.length){status.textContent='Esta carpeta no contiene vídeos directos. Entra en una carpeta con MP4 y vuelve a pulsar MINIATURAS.';return}
@@ -375,7 +417,7 @@ async function showLiveThumbs(){
   let e=entries[i]; if(!(e.h.kind==='file'&&VIDEO.test(e.name)))continue;
   let card=cards[i]; if(!card)continue; let box=card.querySelector('.thumb');
   try{
-   let f=await e.h.getFile(),u=URL.createObjectURL(f);liveThumbURLs.push(u);
+   let u=await mediaSource(e.h);liveThumbURLs.push(u);
    box.innerHTML='';let v=document.createElement('video');v.muted=true;v.playsInline=true;v.preload='metadata';v.src=u;
    v.style.cssText='width:100%;height:100%;object-fit:cover;pointer-events:none';
    box.appendChild(v);let mark=document.createElement('span');mark.className='playmark';mark.textContent='▶';box.appendChild(mark);
@@ -388,7 +430,7 @@ async function showLiveThumbs(){
 async function makeThumb(handle,name){
  let u=null;
  try{
-  let f=await handle.getFile();u=URL.createObjectURL(f);
+  u=await mediaSource(handle);
   let v=document.createElement('video');v.muted=true;v.playsInline=true;v.preload='auto';v.src=u;
   await Promise.race([
    new Promise((ok,no)=>{v.onloadeddata=ok;v.onerror=()=>no(new Error('video'))}),
@@ -406,8 +448,8 @@ async function makeThumb(handle,name){
   c.width=max;c.height=Math.max(180,Math.round(max/ratio));
   c.getContext('2d').drawImage(v,0,0,c.width,c.height);
   let thumb=c.toDataURL('image/jpeg',.65),x=data(name);x.thumb=thumb;save(name,x);
-  if(u)URL.revokeObjectURL(u);return true;
- }catch(e){if(u)URL.revokeObjectURL(u);return false}
+  if(u)revokeMedia(u);return true;
+ }catch(e){if(u)revokeMedia(u);return false}
 }
 $('#scanThumbs').onclick=showLiveThumbs;
 let courseVideos=[];
@@ -417,18 +459,18 @@ function buildCourse(){
  if(!courseVideos.length){status.textContent='Esta carpeta no contiene vídeos directos para convertir en lecciones.';return}
  let done=0;
  courseVideos.forEach((e,i)=>{
-  let inf=data(e.name), state=inf.progress||'pendiente';if(state==='aprendido')done++;
+  let inf=data(entryKey(e)), state=inf.progress||'pendiente';if(state==='aprendido')done++;
   let d=document.createElement('div');d.className='lesson '+(state==='aprendido'?'done':state==='practicando'?'doing':'');
   d.innerHTML=`<span class="num">${i+1}</span><div class="lt"><b>${esc(clean(e.name))}</b><div class="meta">${state==='aprendido'?'✓ Aprendido':state==='practicando'?'◉ Practicando':'○ Pendiente'}</div></div><div class="lessonActions"><button class="small watch">▶ VER</button><button class="small mark">${state==='aprendido'?'↺ REPASAR':'✓ COMPLETAR'}</button></div>`;
   d.querySelector('.watch').onclick=()=>openEntry(e);
-  d.querySelector('.mark').onclick=()=>{let x=data(e.name);x.progress=x.progress==='aprendido'?'practicando':'aprendido';save(e.name,x);buildCourse();draw(entries)};
+  d.querySelector('.mark').onclick=()=>{let x=data(entryKey(e));x.progress=x.progress==='aprendido'?'practicando':'aprendido';save(entryKey(e),x);buildCourse();draw(entries)};
   cl.appendChild(d)
  });
  let pct=Math.round(done/courseVideos.length*100);
- localStorage.setItem('courseProgress:'+path.join('/'),JSON.stringify({done,total:courseVideos.length,pct}));
+ localStorage.setItem((current?.drive?'courseProgress:drive:'+current.id:'courseProgress:'+path.join('/')),JSON.stringify({done,total:courseVideos.length,pct}));
  $('#coursePct').textContent=pct+'%';$('#courseBar').style.width=pct+'%';
  $('#courseTitle').textContent='🎓 '+(path[path.length-1]||'Curso');
- let next=courseVideos.find(e=>data(e.name).progress!=='aprendido')||courseVideos[0];
+ let next=courseVideos.find(e=>data(entryKey(e)).progress!=='aprendido')||courseVideos[0];
  $('#continueCourse').onclick=()=>{if(next)openEntry(next)};
  cp.classList.add('show');cp.scrollIntoView({behavior:'smooth',block:'start'});
  localStorage.setItem('lastCourse',JSON.stringify({path:[...path],name:path[path.length-1]}));
@@ -490,13 +532,13 @@ function drawQuick(arr){
  grid.innerHTML='';
  if(!arr.length){grid.innerHTML='<div class="empty">No he encontrado coincidencias.</div>';return}
  for(const e of arr){
-  let info=data(e.name), d=document.createElement('div');d.className='card '+(e.h.kind==='directory'?'folder':'');
+  let info=data(entryKey(e)), d=document.createElement('div');d.className='card '+(e.h.kind==='directory'?'folder':'');
   let icon=e.h.kind==='directory'?'📁':PDF.test(e.name)?'📄':'▶️', th=info.thumb||'';
   d.innerHTML=`<div class="thumb">${th?`<img src="${th}" alt=""><span class="playmark">▶</span>`:icon}</div>
   <div class="body"><div class="name">${esc(clean(e.name))}</div>
   <div class="meta">${esc(e.rel||'')}<br>${e.h.kind==='directory'?'Carpeta':PDF.test(e.name)?'Documento PDF':'Vídeo'}</div>
   <div class="row"><button class="small open">${e.h.kind==='directory'?'ABRIR':'REPRODUCIR'}</button></div></div>`;
-  d.querySelector('.open').onclick=async()=>{if(e.h.kind==='directory'){current=e.h;path=[root.name,e.name];entries=await list(current);draw(entries);drawBread();status.textContent=path.join(' › ')}else openEntry(e)};
+  d.querySelector('.open').onclick=()=>openEntry(e);
   d.querySelector('.thumb').onclick=()=>d.querySelector('.open').click();
   grid.appendChild(d);
  }
@@ -504,7 +546,7 @@ function drawQuick(arr){
 document.querySelectorAll('[data-filter]').forEach(b=>b.onclick=async()=>{
  clearLiveThumbURLs();
  if(root){current=root;path=[root.name]}
- await quickAccess(b.dataset.filter,b.textContent.trim());
+ try{await quickAccess(b.dataset.filter,b.textContent.trim());}catch(error){status.textContent=error.message;if(root?.drive)$('#driveStatus').textContent=error.message;}
 });
 
 $('#scanAcademy').onclick=scanAcademy;loadAcademy();
@@ -515,14 +557,19 @@ $('#close').onclick=()=>{$('#player').pause();$('#playerWrap').classList.remove(
 document.querySelectorAll('[data-skip]').forEach(b=>b.onclick=()=>$('#player').currentTime=Math.max(0,$('#player').currentTime+Number(b.dataset.skip)));
 document.querySelectorAll('[data-speed]').forEach(b=>b.onclick=()=>$('#player').playbackRate=Number(b.dataset.speed));
 $('#full').onclick=()=>{const p=$('#player');if(p.webkitEnterFullscreen)p.webkitEnterFullscreen();else if(p.requestFullscreen)p.requestFullscreen().catch(()=>{status.textContent='No se pudo activar la pantalla completa.'})};
-$('#player').onerror=()=>{const box=$('#playerError');box.textContent='Este navegador no puede reproducir este vídeo. Prueba una copia MP4 con vídeo H.264 y audio AAC. Los MKV pueden necesitar conversión; cambiar la extensión no basta.';box.hidden=false};
+$('#player').onerror=()=>{const box=$('#playerError');if(box.dataset.driveError==='yes'){box.dataset.driveError='';return}box.textContent=currentEntry?.h.drive?'No se pudo reproducir el vídeo de Drive. Si ha caducado la conexión, pulsa CONECTAR GOOGLE DRIVE. Si es un problema de formato, prueba una copia MP4 con H.264 y AAC.':'Este navegador no puede reproducir este vídeo. Prueba una copia MP4 con vídeo H.264 y audio AAC. Los MKV pueden necesitar conversión; cambiar la extensión no basta.';box.hidden=false};
+function onDriveMediaError(fileId,code){if(currentEntry?.h.drive&&currentEntry.h.id===fileId){const box=$('#playerError');box.dataset.driveError='yes';box.textContent=code===401?'La conexión con Drive ha caducado. Vuelve al curso, pulsa CONECTAR GOOGLE DRIVE y abre el vídeo otra vez.':'Drive no pudo entregar este vídeo ('+code+'). Comprueba la conexión y los permisos del archivo.';box.hidden=false;}}
 $('#setA').onclick=()=>{A=$('#player').currentTime;updateAB()};$('#setB').onclick=()=>{B=$('#player').currentTime;updateAB()};
 $('#clearAB').onclick=()=>{A=B=null;loopAB=false;updateAB()};$('#loop').onclick=()=>{loopAB=!loopAB;updateAB()};
 function updateAB(){$('#abInfo').textContent=`A: ${A==null?'—':A.toFixed(1)+' s'}   B: ${B==null?'—':B.toFixed(1)+' s'}`;$('#loop').textContent='🔁 BUCLE A-B: '+(loopAB?'SÍ':'NO')}
 $('#player').ontimeupdate=()=>{if(loopAB&&A!=null&&B!=null&&B>A&&$('#player').currentTime>=B)$('#player').currentTime=A};
-$('#todayPlayer').onclick=()=>{if(currentFile){let e=entries.find(x=>x.name===currentFile);if(e)addToday(e,$('#todayPlayer'))}};
+$('#todayPlayer').onclick=()=>{if(currentFile){if(currentEntry)addToday(currentEntry,$('#todayPlayer'))}};
 $('#favBtn').onclick=()=>{let x=data(currentFile);x.fav=!x.fav;save(currentFile,x);$('#favBtn').textContent=x.fav?'★ FAVORITO':'☆ FAVORITO'};
 $('#progress').onchange=()=>{let x=data(currentFile);x.progress=$('#progress').value;save(currentFile,x)};
-window.addEventListener('beforeunload',()=>{if(currentFile){let x=data(currentFile);x.note=$('#note').value;x.progress=$('#progress').value;x.A=A;x.B=B;x.position=$('#player').currentTime||0;x.last=Date.now();save(currentFile,x);localStorage.setItem('lastFile',currentFile)}});
+function savePlayerState(){if(currentFile){let x=data(currentFile);x.note=$('#note').value;x.progress=$('#progress').value;x.A=A;x.B=B;x.position=$('#player').currentTime||0;x.last=Date.now();save(currentFile,x);localStorage.setItem('lastFile',currentFile)}}
+window.addEventListener('pagehide',savePlayerState);window.addEventListener('beforeunload',savePlayerState);
+document.addEventListener('visibilitychange',()=>{if(document.hidden)savePlayerState()});
+$('#note').oninput=()=>{if(currentFile){let x=data(currentFile);x.note=$('#note').value;save(currentFile,x)}};
 </script>
+<script src="drive-ui.js"></script>
 <script>if('serviceWorker' in navigator){addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}))}</script></body></html>
