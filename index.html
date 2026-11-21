@@ -3,6 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="apple-touch-icon" href="icon-180.png">
 <title>Mi Curso de Guitarra</title>
 <style>
 :root{--bg:#111318;--panel:#1c2028;--panel2:#252b35;--txt:#f7f7f7;--muted:#b9c0ca;--accent:#f2b84b;--ok:#6bd58b;--line:#343b47}
@@ -65,14 +68,17 @@ video#player{width:100%;max-height:62vh;background:black;border-radius:12px}
 .practiceStep.done{border-left-color:var(--ok);opacity:.82}.timer{font-size:34px;font-weight:900;color:var(--accent);font-variant-numeric:tabular-nums}
 .historyGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:9px;margin-top:10px}
 .historyCard{background:#151922;border-radius:12px;padding:11px}.historyCard b{font-size:22px;color:var(--accent)}
+header{padding-top:max(14px,env(safe-area-inset-top))}
+main,.playerWrap{padding-left:max(16px,env(safe-area-inset-left));padding-right:max(16px,env(safe-area-inset-right));padding-bottom:max(16px,env(safe-area-inset-bottom))}
+button{min-height:44px}#fileHelp{line-height:1.5}
 </style>
 <link rel="manifest" href="manifest.json"><meta name="theme-color" content="#11151d"><meta name="mobile-web-app-capable" content="yes"><link rel="icon" href="icon.svg" type="image/svg+xml"></head>
 <body>
-<header><h1>🎸 Mi Curso de Guitarra · v7.2</h1><div class="sub">Videoteca local · tus archivos no se suben a Internet</div></header>
+<header><h1>🎸 Mi Curso de Guitarra · v7.3</h1><div class="sub">Videoteca personal · tus archivos no se suben a Internet</div></header>
 <main>
 <div class="hero">
 <h2>🔥 Academia Flamenca de Omar</h2>
-<p>Tu videoteca convertida en curso. Los vídeos permanecen en la tarjeta SD.</p>
+<p>Tu videoteca convertida en curso. Elige tus vídeos desde Archivos o una carpeta de tu dispositivo.</p>
 <div class="dashboard">
 <div class="stat"><b id="nVideos">0</b>vídeos vistos en esta carpeta</div>
 <div class="stat"><b id="nPract">0</b>practicando</div>
@@ -130,12 +136,16 @@ video#player{width:100%;max-height:62vh;background:black;border-radius:12px}
 </div>
 <div class="toolbar">
 <button class="primary" id="pick">📁 ELEGIR CARPETA GUITARRA</button>
+<button id="pickFiles">🎬 ELEGIR VÍDEOS</button>
 <button id="restore">↻ RECUPERAR CARPETA</button>
 <button id="home">🏠 INICIO</button>
 <button id="favs">⭐ FAVORITOS</button>
 </div>
 <input id="search" placeholder="🔎 Buscar: alegrías, picado, acordes, cejilla...">
-<div class="status" id="status">Selecciona la carpeta GUITARRA de tu tarjeta SD.</div>
+<input type="file" id="folderInput" webkitdirectory multiple hidden>
+<input type="file" id="filesInput" accept="video/*,.mp4,.m4v,.mov,.webm,.mkv,.ogv,.pdf" multiple hidden>
+<div class="status" id="status" role="status">Selecciona la carpeta GUITARRA o elige vídeos.</div>
+<p class="meta" id="fileHelp">En iPad, abre esta página en Safari. Para carpetas necesitas iPadOS 18.4 o posterior; también puedes usar ELEGIR VÍDEOS. Empieza con un curso pequeño. Al volver a abrir la aplicación tendrás que seleccionarlo de nuevo; tus notas y tu progreso se conservan en este navegador. Si eliges archivos de Drive o iCloud, Archivos puede descargarlos antes de abrirlos.</p>
 <div class="breadcrumb" id="bread"></div>
 <div class="grid" id="grid"></div>
 </main>
@@ -145,6 +155,7 @@ video#player{width:100%;max-height:62vh;background:black;border-radius:12px}
 <button id="close">← VOLVER AL CURSO</button>
 <div class="playerTitle" id="playerTitle"></div>
 <video id="player" controls playsinline></video>
+<div id="playerError" class="status" role="status" hidden></div>
 <div class="controls">
 <button data-skip="-10">⏪ 10 s</button><button data-skip="10">10 s ⏩</button>
 <button data-speed=".5">0,5×</button><button data-speed=".75">0,75×</button>
@@ -162,8 +173,9 @@ video#player{width:100%;max-height:62vh;background:black;border-radius:12px}
 </div>
 </section>
 
+<script src="selected-files.js"></script>
 <script>
-const VIDEO=/\.(mp4|webm|m4v|mov|ogv)$/i, PDF=/\.pdf$/i;
+const VIDEO=/\.(mp4|webm|m4v|mov|ogv|mkv)$/i, PDF=/\.pdf$/i;
 let root=null,current=null,path=[],entries=[],currentFile=null,objectURL=null,A=null,B=null,loopAB=false,showFavs=false;
 const $=s=>document.querySelector(s), grid=$('#grid'), status=$('#status'), bread=$('#bread');
 const dbp=new Promise((res,rej)=>{let r=indexedDB.open('guitarraDB',1);r.onupgradeneeded=()=>r.result.createObjectStore('handles');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)});
@@ -173,9 +185,21 @@ const key=(name)=>'file:'+name;
 function data(name){try{return JSON.parse(localStorage.getItem(key(name)))||{}}catch{return {}}}
 function save(name,obj){localStorage.setItem(key(name),JSON.stringify(obj))}
 async function permission(h){if((await h.queryPermission({mode:'read'}))==='granted')return true;return (await h.requestPermission({mode:'read'}))==='granted'}
-async function pick(){if(!window.showDirectoryPicker){status.innerHTML='⚠️ Este navegador no ofrece acceso a carpetas mediante File System Access API. Prueba Chrome/Edge actualizado. Si Android no lo permite, habrá que usar la versión APK.';return}
+async function acceptSelection(input){
+ if(!input.files.length)return;
+ const selected=selectedFilesTree(input.files);
+ const contents=await list(selected);
+ if(!contents.length){status.textContent='No hay vídeos ni PDF en esta selección. Elige otra carpeta o vídeos.';input.value='';return}
+ clearLiveThumbURLs();root=selected;current=root;path=[root.name];showFavs=false;$('#search').value='';$('#coursePanel').classList.remove('show');
+ await render();status.textContent+=' · Selección temporal: vuelve a elegirla al abrir de nuevo la aplicación.';
+ input.value='';
+}
+$('#folderInput').onchange=()=>acceptSelection($('#folderInput')).catch(e=>status.textContent='No se pudo abrir la selección: '+e.message);
+$('#filesInput').onchange=()=>acceptSelection($('#filesInput')).catch(e=>status.textContent='No se pudo abrir la selección: '+e.message);
+$('#pickFiles').onclick=()=>$('#filesInput').click();
+async function pick(){if(!window.showDirectoryPicker){$('#folderInput').click();return}
 try{root=await showDirectoryPicker({mode:'read'});if(await permission(root)){await dbSet('root',root);current=root;path=[root.name];showFavs=false;await render()}}catch(e){if(e.name!=='AbortError')status.textContent='No se pudo abrir la carpeta: '+e.message}}
-async function restore(){let h=await dbGet('root');if(!h){status.textContent='No hay una carpeta guardada. Pulsa ELEGIR CARPETA GUITARRA.';return}try{if(await permission(h)){root=h;current=h;path=[h.name];showFavs=false;await render()}}catch(e){status.textContent='Android no ha conservado el permiso. Selecciona de nuevo GUITARRA.'}}
+async function restore(){if(root?.selectedFiles){await goRoot();return}if(!window.showDirectoryPicker){status.textContent='Vuelve a elegir la misma carpeta o los vídeos para recuperar el acceso. Tus notas y progreso siguen guardados.';return}let h=await dbGet('root');if(!h){status.textContent='No hay una carpeta guardada. Pulsa ELEGIR CARPETA GUITARRA.';return}try{if(await permission(h)){root=h;current=h;path=[h.name];showFavs=false;await render()}}catch(e){status.textContent='No se ha conservado el permiso. Selecciona de nuevo GUITARRA.'}}
 async function list(dir){let a=[];for await(const [name,h] of dir.entries()){if(h.kind==='directory'||VIDEO.test(name)||PDF.test(name))a.push({name,h})}return a.sort((x,y)=>x.h.kind===y.h.kind?x.name.localeCompare(y.name,'es',{numeric:true}):x.h.kind==='directory'?-1:1)}
 async function render(){
 if(!current)return; status.textContent='Leyendo '+path.join(' › ')+'…'; entries=await list(current); draw(entries); status.textContent=`${entries.length} elementos · ${path.join(' › ')}`; drawBread();
@@ -331,7 +355,7 @@ function esc(s){return s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt
 async function openEntry(e){
 if(e.h.kind==='directory'){current=e.h;path.push(e.name);showFavs=false;$('#search').value='';await render();return}
 let f=await e.h.getFile(); if(PDF.test(e.name)){let u=URL.createObjectURL(f);window.open(u,'_blank');setTimeout(()=>URL.revokeObjectURL(u),60000);return}
-currentFile=e.name;if(objectURL)URL.revokeObjectURL(objectURL);objectURL=URL.createObjectURL(f);let p=$('#player');
+currentFile=e.name;$('#playerError').hidden=true;if(objectURL)URL.revokeObjectURL(objectURL);objectURL=URL.createObjectURL(f);let p=$('#player');
 p.muted=false;p.defaultMuted=false;p.volume=1;p.removeAttribute('muted');p.src=objectURL;
 $('#playerTitle').textContent=clean(e.name);let inf=data(e.name);$('#note').value=inf.note||'';$('#progress').value=inf.progress||'pendiente';$('#favBtn').textContent=inf.fav?'★ FAVORITO':'☆ FAVORITO';A=inf.A??null;B=inf.B??null;loopAB=false;updateAB();$('#playerWrap').classList.add('show');p.onloadedmetadata=()=>{if(inf.position&&inf.position<p.duration-2)p.currentTime=inf.position};
 p.load();
@@ -490,7 +514,8 @@ $('#favs').onclick=()=>{showFavs=!showFavs;draw(entries);status.textContent=show
 $('#close').onclick=()=>{$('#player').pause();$('#playerWrap').classList.remove('show');if(currentFile){let x=data(currentFile);x.note=$('#note').value;x.progress=$('#progress').value;x.A=A;x.B=B;x.position=$('#player').currentTime||0;x.last=Date.now();save(currentFile,x);localStorage.setItem('lastFile',currentFile)}draw(entries);if($('#coursePanel').classList.contains('show'))buildCourse()};
 document.querySelectorAll('[data-skip]').forEach(b=>b.onclick=()=>$('#player').currentTime=Math.max(0,$('#player').currentTime+Number(b.dataset.skip)));
 document.querySelectorAll('[data-speed]').forEach(b=>b.onclick=()=>$('#player').playbackRate=Number(b.dataset.speed));
-$('#full').onclick=()=>$('#player').requestFullscreen?.();
+$('#full').onclick=()=>{const p=$('#player');if(p.webkitEnterFullscreen)p.webkitEnterFullscreen();else if(p.requestFullscreen)p.requestFullscreen().catch(()=>{status.textContent='No se pudo activar la pantalla completa.'})};
+$('#player').onerror=()=>{const box=$('#playerError');box.textContent='Este navegador no puede reproducir este vídeo. Prueba una copia MP4 con vídeo H.264 y audio AAC. Los MKV pueden necesitar conversión; cambiar la extensión no basta.';box.hidden=false};
 $('#setA').onclick=()=>{A=$('#player').currentTime;updateAB()};$('#setB').onclick=()=>{B=$('#player').currentTime;updateAB()};
 $('#clearAB').onclick=()=>{A=B=null;loopAB=false;updateAB()};$('#loop').onclick=()=>{loopAB=!loopAB;updateAB()};
 function updateAB(){$('#abInfo').textContent=`A: ${A==null?'—':A.toFixed(1)+' s'}   B: ${B==null?'—':B.toFixed(1)+' s'}`;$('#loop').textContent='🔁 BUCLE A-B: '+(loopAB?'SÍ':'NO')}
