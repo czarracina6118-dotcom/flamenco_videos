@@ -12,7 +12,7 @@
       Object.entries(params).forEach(([k,v])=>url.searchParams.set(k,v));
       const token=this.getToken();
       if(!token)throw new Error('La conexión con Drive ha caducado. Pulsa CONECTAR GOOGLE DRIVE.');
-      const response=await this.fetcher(url.href,{headers:{Authorization:'Bearer '+token},cache:'no-store'});
+      const response=await this.fetcher.call(scope,url.href,{headers:{Authorization:'Bearer '+token},cache:'no-store'});
       if(!response.ok){
         if(response.status===401)throw new Error('La conexión con Drive ha caducado. Pulsa CONECTAR GOOGLE DRIVE.');
         let detail='';try{detail=(await response.json()).error?.message||'';}catch{}

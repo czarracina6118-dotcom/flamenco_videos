@@ -79,7 +79,7 @@ button{min-height:44px}#fileHelp{line-height:1.5}
 </style>
 <link rel="manifest" href="manifest.json"><meta name="theme-color" content="#11151d"><meta name="mobile-web-app-capable" content="yes"><link rel="icon" href="icon.svg" type="image/svg+xml"></head>
 <body>
-<header><h1>🎸 Mi Curso de Guitarra · v7.4.1</h1><div class="sub">Videoteca personal · tus archivos no se suben a Internet</div></header>
+<header><h1>🎸 Mi Curso de Guitarra · v7.4.2</h1><div class="sub">Videoteca personal · tus archivos no se suben a Internet</div></header>
 <main>
 <section class="drivePanel" aria-labelledby="driveHeading">
 <h2 id="driveHeading">Google Drive · mi carpeta GUITARRA</h2>
@@ -190,8 +190,8 @@ button{min-height:44px}#fileHelp{line-height:1.5}
 </div>
 </section>
 
-<script src="selected-files.js"></script>
-<script src="drive-client.js"></script>
+<script src="selected-files.js?v=7.4.2"></script>
+<script src="drive-client.js?v=7.4.2"></script>
 <script>
 const VIDEO=/\.(mp4|webm|m4v|mov|ogv|mkv)$/i, PDF=/\.pdf$/i;
 let root=null,current=null,path=[],entries=[],currentFile=null,currentEntry=null,objectURL=null,A=null,B=null,loopAB=false,showFavs=false;
@@ -571,5 +571,5 @@ window.addEventListener('pagehide',savePlayerState);window.addEventListener('bef
 document.addEventListener('visibilitychange',()=>{if(document.hidden)savePlayerState()});
 $('#note').oninput=()=>{if(currentFile){let x=data(currentFile);x.note=$('#note').value;save(currentFile,x)}};
 </script>
-<script src="drive-ui.js"></script>
+<script src="drive-ui.js?v=7.4.2"></script>
 <script>if('serviceWorker' in navigator){addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}))}</script></body></html>
