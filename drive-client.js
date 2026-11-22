@@ -4,7 +4,7 @@
   const FIELDS='id,name,mimeType,size,resourceKey,capabilities(canDownload)';
   function queryValue(value){return String(value).replace(/\\/g,'\\\\').replace(/'/g,"\\'");}
   class DriveClient {
-    constructor({getToken,fetcher=scope.fetch,mediaURL}){
+    constructor({getToken,fetcher=(...args)=>scope.fetch(...args),mediaURL}){
       this.getToken=getToken;this.fetcher=fetcher;this.mediaURL=mediaURL;this.cache=new Map();
     }
     async request(path,params={}){

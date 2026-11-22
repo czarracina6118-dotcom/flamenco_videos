@@ -1,5 +1,5 @@
 importScripts('./drive-media.js');
-const C='curso-flamenco-v7-4-drive-1',A=['./','./index.html','./manifest.json','./selected-files.js','./drive-client.js','./drive-ui.js','./drive-media.js','./icon-192.png','./icon-512.png'];
+const C='curso-flamenco-v7-4-1-drive-1',A=['./','./index.html','./manifest.json','./selected-files.js','./drive-client.js','./drive-ui.js','./drive-media.js','./icon-192.png','./icon-512.png'];
 self.addEventListener('install',e=>e.waitUntil(caches.open(C).then(c=>c.addAll(A)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith('curso-flamenco-')&&k!==C).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
 self.addEventListener('message',e=>{if(e.data?.type==='DRIVE_PING')e.ports[0]?.postMessage({drive:true});});

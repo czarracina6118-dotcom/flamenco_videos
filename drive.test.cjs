@@ -82,3 +82,15 @@ test('Safari range header reconstruction handles suffixes, open ends and invalid
  assert.equal(contentRange('bytes=-10','1000','10'),'bytes 990-999/1000');
  assert.equal(contentRange('bytes=1000-2000','1000',''),null);
 });
+test('browser fetch keeps its Window receiver when the Drive client calls it',async()=>{
+ const vm=require('node:vm'),fs=require('node:fs');
+ const browser={URL,Map,Date,fetch:function(url,options){
+  assert.equal(this,browser.window,'fetch must be called on Window');
+  assert.equal(options.headers.Authorization,'Bearer test-token');
+  return Promise.resolve(Response.json({files:[folder('guitar','GUITARRA')]}));
+ }};
+ const context=vm.createContext(browser);browser.window=vm.runInContext('globalThis',context);
+ vm.runInContext(fs.readFileSync(__dirname+'/drive-client.js','utf8'),context);
+ const client=new browser.DriveClient({getToken:()=> 'test-token'});
+ const matches=await client.guitarFolders();assert.equal(matches[0].id,'guitar');
+});
