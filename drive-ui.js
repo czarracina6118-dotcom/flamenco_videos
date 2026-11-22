@@ -3,6 +3,10 @@
   const CLIENT_ID='312738517630-sns0q4jfl7aorg1r9go6cd8nc25etenj.apps.googleusercontent.com';
   const SCOPE='https://www.googleapis.com/auth/drive.readonly';
   const SAVED='flamencoDriveFolder';
+  const PENDING='flamencoDrivePending';
+  let connectionTimer=null,attempt=0;
+  function pending(value){try{value?sessionStorage.setItem(PENDING,'yes'):sessionStorage.removeItem(PENDING);}catch{}}
+  function finish(){clearTimeout(connectionTimer);connecting=false;el('driveConnect').disabled=false;pending(false);}
   let token='',expires=0,client=null,connecting=false,oauth=null,selected=null,stack=[];
   const allowedMedia=new Map();
   const el=id=>document.getElementById(id);
@@ -45,20 +49,32 @@
   function connect(){
     if(connecting)return;
     if(!scope.google?.accounts?.oauth2){message('La conexión de Google todavía no ha cargado. Espera unos segundos y vuelve a pulsar CONECTAR GOOGLE DRIVE.');return;}
-    connecting=true;el('driveConnect').disabled=true;message('Elige tu cuenta y autoriza la lectura de Drive en la ventana de Google.');
+    const currentAttempt=++attempt;
+    connecting=true;pending(true);el('driveConnect').disabled=true;message('Paso 1/3 · Esperando la respuesta de Google. Elige tu cuenta y autoriza la lectura de Drive.');
+    connectionTimer=setTimeout(()=>{
+      if(currentAttempt!==attempt)return;
+      ++attempt;finish();
+      message('Google no ha devuelto la autorización al curso (paso 1/3). No se ha confirmado la conexión. Abre el enlace directamente en una pestaña de Safari, fuera de ChatGPT y del acceso de inicio, y vuelve a conectar.');
+    },90000);
     // This call stays in the click handler so Safari can open Google's consent popup.
+    try{
     oauth=google.accounts.oauth2.initTokenClient({client_id:CLIENT_ID,scope:SCOPE,include_granted_scopes:false,
       callback:response=>{
-        connecting=false;el('driveConnect').disabled=false;
+        if(currentAttempt!==attempt)return;
+        finish();
+        try{
+        message('Paso 2/3 · Google ha respondido. Comprobando el permiso de lectura…');
         if(response.error||!response.access_token){message('No se completó la conexión con Google: '+(response.error||'sin permiso'));return;}
         if(!google.accounts.oauth2.hasGrantedAllScopes(response,SCOPE)){message('Hace falta autorizar la lectura de Drive para abrir GUITARRA.');return;}
         resetSession();token=response.access_token;expires=Date.now()+Math.max(0,Number(response.expires_in||3600)-30)*1000;
         el('driveDisconnect').hidden=false;el('driveChange').hidden=false;
         restoreOrBrowse().catch(report);
+        }catch(error){report(error);}
       },
-      error_callback:error=>{connecting=false;el('driveConnect').disabled=false;message(error.type==='popup_closed'?'Has cerrado la ventana de Google. Puedes volver a conectar.':'Google no pudo abrir la conexión. Abre el curso en Safari y permite la ventana de inicio de sesión.');}
+      error_callback:error=>{if(currentAttempt!==attempt)return;finish();message(error.type==='popup_closed'?'Has cerrado la ventana de Google. Puedes volver a conectar.':'Google no pudo abrir la conexión. Abre el curso en Safari y permite la ventana de inicio de sesión.');}
     });
     oauth.requestAccessToken({prompt:'select_account'});
+    }catch(error){finish();report(error);}
   }
   async function restoreOrBrowse(){
     const previous=saved();
@@ -75,7 +91,7 @@
   async function browse(){
     if(!accessToken()){connect();return;}
     client.clearCache();stack=[];selected=null;el('driveBrowser').hidden=false;el('driveUse').disabled=true;
-    message('Buscando la carpeta GUITARRA…');
+    message('Paso 3/3 · Permiso recibido. Buscando la carpeta GUITARRA en Drive…');
     const matches=await client.guitarFolders();
     if(matches.length===1){await showFolder(matches[0]);return;}
     if(matches.length){
@@ -120,5 +136,7 @@
   el('driveBrowseRoot').onclick=()=>{stack=[];showFolder({id:'root',name:'Mi unidad',mimeType:'application/vnd.google-apps.folder'}).catch(report);};
   el('driveDisconnect').onclick=disconnect;
   scope.DriveConnection={connect,client,accessTokenAvailable:()=>Boolean(accessToken()),saved};
-  const previous=saved();if(previous)message('Carpeta recordada: '+previous.name+'. Pulsa CONECTAR GOOGLE DRIVE para recuperar el acceso.');
+  let interrupted=false;try{interrupted=sessionStorage.getItem(PENDING)==='yes';}catch{}
+  if(interrupted){pending(false);message('El curso se ha recargado durante la conexión con Google. No se ha confirmado el acceso. Abre el enlace directamente en una pestaña de Safari y pulsa CONECTAR GOOGLE DRIVE.');}
+  const previous=saved();if(previous&&!interrupted)message('Carpeta recordada: '+previous.name+'. Pulsa CONECTAR GOOGLE DRIVE para recuperar el acceso.');
 })(globalThis);

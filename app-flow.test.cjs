@@ -75,3 +75,17 @@ test('Drive consent is user-initiated and the root bookmark contains no token',a
  listeners[0]({source:worker,data:{type:'DRIVE_MEDIA_AUTH',fileId:'unregistered'},ports:[channel.port2]});
  assert.deepEqual(await response,{});
 });
+test('missing Google response times out, allows retry and ignores a late response',()=>{
+ const app=harness();let timeout;const configs=[];
+ app.context.setTimeout=fn=>{timeout=fn;return 1;};app.context.clearTimeout=()=>{};
+ app.context.google={accounts:{oauth2:{initTokenClient:config=>{configs.push(config);return {requestAccessToken(){}};},hasGrantedAllScopes:()=>true}}};
+ vm.runInContext(fs.readFileSync(__dirname+'/drive-ui.js','utf8'),app.context);
+ const button=app.elements.get('#driveConnect'),status=app.elements.get('#driveStatus');
+ button.onclick();assert.equal(button.disabled,true);assert.match(status.textContent,/Paso 1\/3/);
+ timeout();assert.equal(button.disabled,false);assert.match(status.textContent,/no ha devuelto/);
+ button.onclick();assert.equal(configs.length,2);
+ configs[0].callback({access_token:'late-token'});
+ assert.equal(app.context.DriveConnection.accessTokenAvailable(),false);
+ assert.equal(button.disabled,true);
+ configs[1].error_callback({type:'popup_closed'});assert.equal(button.disabled,false);
+});
